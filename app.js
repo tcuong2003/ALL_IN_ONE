@@ -25,6 +25,271 @@ function getUserStorageKey(baseKey) {
 
 const AIO_STORAGE_KEY_MODULE = 'aio_active_module';
 
+// =============================================================================
+// FIREBASE REALTIME DATABASE CLOUD SYNC ENGINE (SINGAPORE)
+// =============================================================================
+
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCnAKi_0EfcWTXd5Joc4UDMiSlDuly7yLk",
+  authDomain: "all-in-one-86a90.firebaseapp.com",
+  databaseURL: "https://all-in-one-86a90-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "all-in-one-86a90",
+  storageBucket: "all-in-one-86a90.firebasestorage.app",
+  messagingSenderId: "1001938782693",
+  appId: "1:1001938782693:web:cc1a94c324eb54ba6e470c"
+};
+
+const CLIENT_SESSION_ID = 'client_' + Math.random().toString(36).substring(2, 9) + '_' + Date.now();
+let cloudDb = null;
+let isRemoteUpdating = false;
+let cloudSyncTimeout = null;
+
+function updateSyncStatusUI(status, text) {
+  const ind = document.getElementById('sync-status-indicator');
+  const txt = document.getElementById('sync-status-text');
+  if (ind) {
+    ind.className = 'sync-status-indicator';
+    if (status === 'live') ind.classList.add('pulse-live');
+    else if (status === 'syncing') ind.classList.add('syncing');
+    else if (status === 'offline') ind.classList.add('offline');
+  }
+  if (txt && text) txt.textContent = text;
+}
+
+function initCloudSync() {
+  try {
+    if (typeof firebase === 'undefined') {
+      console.warn('Firebase SDK not loaded.');
+      updateSyncStatusUI('offline', 'Offline');
+      return;
+    }
+
+    if (!firebase.apps || !firebase.apps.length) {
+      firebase.initializeApp(FIREBASE_CONFIG);
+    }
+
+    cloudDb = firebase.database();
+
+    // Check real-time connection status to Firebase cluster
+    const connectedRef = cloudDb.ref('.info/connected');
+    connectedRef.on('value', snap => {
+      if (snap.val() === true) {
+        updateSyncStatusUI('live', 'Cloud Live');
+      } else {
+        updateSyncStatusUI('offline', 'Offline');
+      }
+    });
+
+    // Listen to real-time changes on aio_cloud_suite
+    const suiteRef = cloudDb.ref('aio_cloud_suite');
+    suiteRef.on('value', snapshot => {
+      const data = snapshot.val();
+      if (!data) {
+        // Initial setup on new cloud database: seed with local data
+        pushFullLocalDataToCloud();
+        return;
+      }
+
+      if (!data.anh) pushProfileDataToCloud('anh');
+      if (!data.em) pushProfileDataToCloud('em');
+
+      if (isRemoteUpdating) return;
+      applyRemoteCloudData(data);
+    });
+
+    const statusBadge = document.getElementById('cloud-sync-status');
+    if (statusBadge) {
+      statusBadge.addEventListener('click', () => {
+        showToast('☁️ Firebase Cloud Live: Đang đồng bộ thời gian thực giữa Điện thoại & Máy tính!');
+      });
+    }
+  } catch (err) {
+    console.error('Firebase init error:', err);
+    updateSyncStatusUI('offline', 'Offline');
+  }
+}
+
+function applyRemoteCloudData(cloudData) {
+  let activeProfileChanged = false;
+
+  // 1. Sync Anh profile
+  if (cloudData.anh && cloudData.anh.updatedBy !== CLIENT_SESSION_ID) {
+    let anhChanged = false;
+    if (cloudData.anh.budget) {
+      const cur = localStorage.getItem('smartbudget_v1_data_anh');
+      const incoming = JSON.stringify(cloudData.anh.budget);
+      if (cur !== incoming) {
+        localStorage.setItem('smartbudget_v1_data_anh', incoming);
+        anhChanged = true;
+      }
+    }
+    if (cloudData.anh.notes) {
+      const cur = localStorage.getItem('aio_apple_notes_data_anh');
+      const incoming = JSON.stringify(cloudData.anh.notes);
+      if (cur !== incoming) {
+        localStorage.setItem('aio_apple_notes_data_anh', incoming);
+        anhChanged = true;
+      }
+    }
+    if (cloudData.anh.ledger) {
+      const curTx = localStorage.getItem('aio_komorebi_ledger_data_anh');
+      const inTx = JSON.stringify(cloudData.anh.ledger.transactions || []);
+      if (curTx !== inTx) {
+        localStorage.setItem('aio_komorebi_ledger_data_anh', inTx);
+        anhChanged = true;
+      }
+      if (cloudData.anh.ledger.budgetLimits) {
+        const curBg = localStorage.getItem('aio_komorebi_budget_limits_anh');
+        const inBg = JSON.stringify(cloudData.anh.ledger.budgetLimits);
+        if (curBg !== inBg) {
+          localStorage.setItem('aio_komorebi_budget_limits_anh', inBg);
+          anhChanged = true;
+        }
+      }
+    }
+    if (anhChanged && currentUserProfile === 'anh') {
+      activeProfileChanged = true;
+    }
+  }
+
+  // 2. Sync Em profile
+  if (cloudData.em && cloudData.em.updatedBy !== CLIENT_SESSION_ID) {
+    let emChanged = false;
+    if (cloudData.em.budget) {
+      const cur = localStorage.getItem('smartbudget_v1_data_em');
+      const incoming = JSON.stringify(cloudData.em.budget);
+      if (cur !== incoming) {
+        localStorage.setItem('smartbudget_v1_data_em', incoming);
+        emChanged = true;
+      }
+    }
+    if (cloudData.em.notes) {
+      const cur = localStorage.getItem('aio_apple_notes_data_em');
+      const incoming = JSON.stringify(cloudData.em.notes);
+      if (cur !== incoming) {
+        localStorage.setItem('aio_apple_notes_data_em', incoming);
+        emChanged = true;
+      }
+    }
+    if (cloudData.em.ledger) {
+      const curTx = localStorage.getItem('aio_komorebi_ledger_data_em');
+      const inTx = JSON.stringify(cloudData.em.ledger.transactions || []);
+      if (curTx !== inTx) {
+        localStorage.setItem('aio_komorebi_ledger_data_em', inTx);
+        emChanged = true;
+      }
+      if (cloudData.em.ledger.budgetLimits) {
+        const curBg = localStorage.getItem('aio_komorebi_budget_limits_em');
+        const inBg = JSON.stringify(cloudData.em.ledger.budgetLimits);
+        if (curBg !== inBg) {
+          localStorage.setItem('aio_komorebi_budget_limits_em', inBg);
+          emChanged = true;
+        }
+      }
+    }
+    if (emChanged && currentUserProfile === 'em') {
+      activeProfileChanged = true;
+    }
+  }
+
+  if (activeProfileChanged) {
+    isRemoteUpdating = true;
+    try {
+      loadFromStorage();
+      loadNotesFromStorage();
+      loadLedgerFromStorage();
+
+      const incInput = document.getElementById('income-input');
+      if (incInput && document.activeElement !== incInput) {
+        incInput.value = state.income === 0 ? '' : formatNumberForInput(state.income, suiteState.currency);
+      }
+      updateCurrencyDisplay();
+      render();
+      if (typeof renderNotesApp === 'function') renderNotesApp();
+      if (typeof renderLedgerApp === 'function') renderLedgerApp();
+      if (typeof renderCompound === 'function') renderCompound();
+    } finally {
+      setTimeout(() => {
+        isRemoteUpdating = false;
+      }, 500);
+    }
+
+    updateSyncStatusUI('live', 'Cloud Live');
+  }
+}
+
+function triggerCloudSyncDebounced(delay = 400, profileToPush = currentUserProfile) {
+  if (isRemoteUpdating) return;
+  if (!cloudDb) return;
+  updateSyncStatusUI('syncing', 'Đang lưu...');
+  clearTimeout(cloudSyncTimeout);
+  cloudSyncTimeout = setTimeout(() => {
+    pushProfileDataToCloud(profileToPush);
+  }, delay);
+}
+
+function pushProfileDataToCloud(profile) {
+  if (!cloudDb) return;
+  try {
+    let budgetRaw = localStorage.getItem(`smartbudget_v1_data_${profile}`);
+    if (!budgetRaw && profile === 'anh') {
+      budgetRaw = localStorage.getItem('smartbudget_v1_data');
+    }
+    let notesRaw = localStorage.getItem(`aio_apple_notes_data_${profile}`);
+    if (!notesRaw && profile === 'anh') {
+      notesRaw = localStorage.getItem('aio_apple_notes_data');
+    }
+    let ledgerTxRaw = localStorage.getItem(`aio_komorebi_ledger_data_${profile}`);
+    if (!ledgerTxRaw && profile === 'anh') {
+      ledgerTxRaw = localStorage.getItem('aio_komorebi_ledger_data');
+    }
+    let ledgerBgRaw = localStorage.getItem(`aio_komorebi_budget_limits_${profile}`);
+    if (!ledgerBgRaw && profile === 'anh') {
+      ledgerBgRaw = localStorage.getItem('aio_komorebi_budget_limits');
+    }
+
+    let budgetObj = null;
+    if (budgetRaw) {
+      budgetObj = JSON.parse(budgetRaw);
+    } else if (profile === currentUserProfile && typeof state !== 'undefined') {
+      budgetObj = {
+        income: state.income,
+        currency: suiteState.currency,
+        activePreset: state.activePreset,
+        sortBy: state.sortBy,
+        categories: state.categories
+      };
+    }
+
+    const payload = {
+      budget: budgetObj,
+      notes: notesRaw ? JSON.parse(notesRaw) : null,
+      ledger: {
+        transactions: ledgerTxRaw ? JSON.parse(ledgerTxRaw) : [],
+        budgetLimits: ledgerBgRaw ? JSON.parse(ledgerBgRaw) : {}
+      },
+      updatedAt: Date.now(),
+      updatedBy: CLIENT_SESSION_ID
+    };
+
+    cloudDb.ref(`aio_cloud_suite/${profile}`).set(payload, (err) => {
+      if (err) {
+        console.error('Cloud push failed:', err);
+        updateSyncStatusUI('offline', 'Lỗi mạng');
+      } else {
+        updateSyncStatusUI('live', 'Cloud Live');
+      }
+    });
+  } catch (e) {
+    console.error('Error in pushProfileDataToCloud:', e);
+  }
+}
+
+function pushFullLocalDataToCloud() {
+  pushProfileDataToCloud('anh');
+  pushProfileDataToCloud('em');
+}
+
 function switchModule(moduleName) {
   suiteState.activeModule = moduleName;
   localStorage.setItem(AIO_STORAGE_KEY_MODULE, moduleName);
@@ -85,10 +350,12 @@ function updateCurrencyDisplay() {
 function switchUserProfile(newProfile) {
   if (currentUserProfile === newProfile) return;
 
-  // 1. Save all existing profile data
+  // 1. Save all existing profile data & push to cloud
+  const oldProfile = currentUserProfile;
   saveToStorage();
   saveNotesToStorage();
   saveLedgerToStorage();
+  pushProfileDataToCloud(oldProfile);
 
   // 2. Change active profile
   currentUserProfile = newProfile;
@@ -275,6 +542,9 @@ function saveToStorage() {
       sortBy: state.sortBy,
       categories: state.categories
     }));
+    if (typeof triggerCloudSyncDebounced === 'function') {
+      triggerCloudSyncDebounced(400, currentUserProfile);
+    }
   } catch (e) {
     console.warn('LocalStorage save failed:', e);
   }
@@ -1459,6 +1729,9 @@ function saveNotesToStorage() {
   try {
     const key = getUserStorageKey(NOTES_STORAGE_KEY);
     localStorage.setItem(key, JSON.stringify(notesState.notes));
+    if (typeof triggerCloudSyncDebounced === 'function') {
+      triggerCloudSyncDebounced(500, currentUserProfile);
+    }
   } catch (e) {
     console.warn('Failed to save notes:', e);
   }
@@ -2134,6 +2407,9 @@ function saveLedgerToStorage() {
     const bgKey = getUserStorageKey(LEDGER_BUDGET_KEY);
     localStorage.setItem(txKey, JSON.stringify(ledgerState.transactions));
     localStorage.setItem(bgKey, JSON.stringify(ledgerState.budgetLimits));
+    if (typeof triggerCloudSyncDebounced === 'function') {
+      triggerCloudSyncDebounced(400, currentUserProfile);
+    }
   } catch (e) {
     console.warn('Ledger save failed:', e);
   }
@@ -2965,6 +3241,7 @@ window.addEventListener('DOMContentLoaded', () => {
   renderCompound();
   initAppleNotes();
   initKomorebiLedger();
+  initCloudSync();
 
   // Load last active module (default to budget)
   const savedMod = localStorage.getItem(AIO_STORAGE_KEY_MODULE) || 'budget';

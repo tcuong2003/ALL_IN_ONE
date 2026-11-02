@@ -67,6 +67,10 @@
 
         <div class="header-actions">
           <div class="header-settings-group">
+            <div class="cloud-sync-status" id="cloud-sync-status" title="Đồng bộ đám mây Realtime giữa Điện thoại & Máy tính (Firebase Singapore)">
+              <span class="sync-status-indicator pulse-live" id="sync-status-indicator"></span>
+              <span class="sync-status-text" id="sync-status-text">Cloud Live</span>
+            </div>
             <button type="button" id="btn-theme-toggle" class="btn btn-ghost" title="Chuyển chế độ Sáng / Tối">
               <span id="theme-toggle-icon">🌙</span>
               <span id="theme-toggle-text">Tối</span>
@@ -1082,6 +1086,9 @@
     </div>
   </div>
 
+  <!-- Firebase Realtime Database Cloud Sync SDK (Google) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

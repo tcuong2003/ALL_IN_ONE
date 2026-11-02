@@ -372,6 +372,73 @@ body[data-tab="hub"] {
 }
 
 /* ==========================================================================
+   Cloud Sync Status Indicator (Firebase Realtime)
+   ========================================================================== */
+
+.cloud-sync-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  padding: 5px 11px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.22s ease;
+  white-space: nowrap !important;
+}
+
+.cloud-sync-status:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.sync-status-indicator {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  display: inline-block;
+  flex-shrink: 0;
+  transition: background-color 0.2s ease;
+}
+
+.sync-status-indicator.pulse-live {
+  background: #10b981;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  animation: syncPulse 2.2s infinite;
+}
+
+.sync-status-indicator.syncing {
+  background: #f59e0b;
+  box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+  animation: syncPulse 0.9s infinite;
+}
+
+.sync-status-indicator.offline {
+  background: #94a3b8;
+  animation: none;
+  box-shadow: none;
+}
+
+@keyframes syncPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+/* ==========================================================================
    Couple Profile Switcher (Anh ❤️ Em)
    ========================================================================== */
 
@@ -4612,6 +4679,13 @@ body[data-tab="hub"] .badge-tag {
     justify-content: space-between;
     width: 100%;
     gap: 8px;
+    box-sizing: border-box;
+  }
+
+  .cloud-sync-status {
+    height: 36px;
+    padding: 5px 10px;
+    font-size: 0.72rem;
     box-sizing: border-box;
   }
 
