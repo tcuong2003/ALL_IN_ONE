@@ -21,10 +21,15 @@
     (function() {
       const savedTheme = localStorage.getItem('aio_suite_theme_mode') || 'light';
       document.documentElement.setAttribute('data-theme', savedTheme);
+      const savedMod = localStorage.getItem('aio_active_module') || 'budget';
+      document.documentElement.setAttribute('data-active-tab', savedMod);
+      document.addEventListener('DOMContentLoaded', () => {
+        if (document.body) document.body.setAttribute('data-tab', savedMod);
+      });
     })();
   </script>
 </head>
-<body>
+<body data-tab="budget">
   <div class="app-layout">
     <!-- All In One Suite Header -->
     <header class="app-header">

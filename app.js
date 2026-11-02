@@ -21,6 +21,10 @@ function switchModule(moduleName) {
   suiteState.activeModule = moduleName;
   localStorage.setItem(AIO_STORAGE_KEY_MODULE, moduleName);
 
+  // Synchronize Tab Theme on Body & Root for Harmonious Per-Tab Backgrounds
+  document.body.setAttribute('data-tab', moduleName);
+  document.documentElement.setAttribute('data-active-tab', moduleName);
+
   // Update Navigation Tabs
   document.querySelectorAll('.aio-tab-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.module === moduleName);
@@ -2751,9 +2755,11 @@ window.addEventListener('DOMContentLoaded', () => {
   initAppleNotes();
   initKomorebiLedger();
 
-  // Load last active module
-  const savedMod = localStorage.getItem(AIO_STORAGE_KEY_MODULE);
-  if (savedMod && ['budget', 'compound', 'hub', 'notes', 'ledger'].includes(savedMod)) {
+  // Load last active module (default to budget)
+  const savedMod = localStorage.getItem(AIO_STORAGE_KEY_MODULE) || 'budget';
+  if (['budget', 'compound', 'hub', 'notes', 'ledger'].includes(savedMod)) {
     switchModule(savedMod);
+  } else {
+    switchModule('budget');
   }
 });
