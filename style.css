@@ -111,12 +111,23 @@
   padding: 0;
 }
 
+html {
+  overflow-x: hidden;
+  max-width: 100vw;
+  width: 100%;
+  box-sizing: border-box;
+}
+
 body {
   font-family: var(--font-sans);
   background-color: var(--bg-primary);
   color: var(--text-primary);
   line-height: 1.5;
   min-height: 100vh;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  box-sizing: border-box;
   background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
   transition: background-color 0.45s cubic-bezier(0.16, 1, 0.3, 1), 
@@ -345,8 +356,15 @@ body[data-tab="hub"] {
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   flex-shrink: 0;
+}
+
+.header-settings-group,
+.header-tools-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .header-actions .btn {
@@ -4326,20 +4344,26 @@ body[data-tab="hub"] .badge-tag {
 @media (max-width: 768px) {
   /* Layout Base & Safe Area Insets for iOS Devices */
   .app-layout {
-    padding: 12px 14px 48px;
-    padding-left: max(14px, env(safe-area-inset-left));
-    padding-right: max(14px, env(safe-area-inset-right));
-    padding-bottom: max(48px, env(safe-area-inset-bottom));
+    padding: 10px 12px 36px;
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+    padding-bottom: max(36px, env(safe-area-inset-bottom));
+    width: 100%;
+    max-width: 100vw;
+    box-sizing: border-box;
+    overflow-x: hidden;
   }
 
   /* 1. App Header: Modern Stacked App Bar */
   .app-header {
     flex-direction: column;
     align-items: stretch;
-    padding: 14px 14px 12px;
-    gap: 12px;
+    padding: 12px 14px 10px;
+    gap: 10px;
     border-radius: var(--radius-lg);
-    margin-bottom: 16px;
+    margin-bottom: 14px;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .header-top-row {
@@ -4347,7 +4371,7 @@ body[data-tab="hub"] .badge-tag {
     flex-direction: column;
     align-items: stretch;
     width: 100%;
-    gap: 12px;
+    gap: 10px;
   }
 
   .logo-badge {
@@ -4401,6 +4425,7 @@ body[data-tab="hub"] .badge-tag {
     background: var(--bg-input);
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-lg);
+    box-sizing: border-box;
   }
 
   .aio-nav-tabs::-webkit-scrollbar {
@@ -4423,35 +4448,73 @@ body[data-tab="hub"] .badge-tag {
   /* Header Actions Bar */
   .header-actions {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
     width: 100%;
     gap: 8px;
     padding-top: 10px;
     border-top: 1px solid var(--border-subtle);
+    box-sizing: border-box;
+  }
+
+  .header-settings-group {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 8px;
+    box-sizing: border-box;
+  }
+
+  .header-tools-group {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 8px;
+    box-sizing: border-box;
+  }
+
+  #btn-theme-toggle {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-input);
+    border: 1px solid var(--border-subtle);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    box-sizing: border-box;
   }
 
   .currency-selector {
-    flex-shrink: 0;
+    padding: 3px;
+    height: 36px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    border-radius: var(--radius-sm);
   }
 
   .currency-btn {
-    padding: 6px 10px;
+    padding: 5px 12px;
     font-size: 0.78rem;
+    height: 30px;
+    line-height: 1;
   }
 
-  #btn-export-text {
+  .header-tools-group button {
     flex: 1;
     justify-content: center;
-    font-size: 0.78rem;
-    padding: 7px 10px;
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    height: 36px;
     gap: 6px;
+    border-radius: var(--radius-sm);
+    box-sizing: border-box;
+    white-space: nowrap !important;
   }
 
   #btn-reset {
-    font-size: 0.78rem;
-    padding: 7px 10px;
-    gap: 4px;
     color: var(--text-muted);
   }
 
@@ -4673,15 +4736,57 @@ body[data-tab="hub"] .badge-tag {
     border-radius: var(--radius-sm);
   }
 
+  /* 4. Dashboard Grid & Full-width Stacked Panels */
+  .dashboard-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    gap: 16px !important;
+    box-sizing: border-box !important;
+  }
+
+  .categories-panel {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
   .categories-grid {
-    grid-template-columns: 1fr;
-    gap: 14px;
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    gap: 12px !important;
+    box-sizing: border-box !important;
   }
 
   .category-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
     padding: 16px;
     border-radius: var(--radius-lg);
     gap: 14px;
+  }
+
+  .insights-panel {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    gap: 16px !important;
+    box-sizing: border-box !important;
+  }
+
+  .insight-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 18px 16px;
+    border-radius: var(--radius-lg);
   }
 
   .card-icon-badge {
@@ -5119,6 +5224,20 @@ body[data-tab="hub"] .badge-tag {
 @media (max-width: 380px) {
   .logo-title {
     font-size: 1.05rem;
+  }
+  .header-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .header-settings-group,
+  .header-tools-group {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .header-tools-group button {
+    flex: 1;
+    justify-content: center;
   }
   .income-input {
     font-size: 1.5rem;
