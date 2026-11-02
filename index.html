@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>All In One - Nền Tảng Công Cụ & Dự Án Đa Năng</title>
+  <meta name="description" content="All In One Suite - Tích hợp đa dạng công cụ quản lý tài chính, máy tính chi tiêu 100%, máy tính lãi kép và trung tâm dự án trong một mã nguồn duy nhất.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- All In One Suite Header -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="logo-badge">
+          <span class="logo-icon">🌐</span>
+          <div>
+            <h1 class="logo-title">All In One <span class="badge-tag">SUITE</span></h1>
+            <p class="logo-subtitle">Hệ sinh thái công cụ & dự án đa năng</p>
+          </div>
+        </div>
+
+        <!-- Suite Project Navigation Tabs -->
+        <nav class="aio-nav-tabs">
+          <button type="button" class="aio-tab-btn active" data-module="budget" title="Máy tính phân bổ chi tiêu">
+            <span class="tab-icon">⚡</span>
+            <span class="tab-text">SmartBudget 100%</span>
+          </button>
+          <button type="button" class="aio-tab-btn" data-module="compound" title="Máy tính lãi kép & đầu tư tích lũy">
+            <span class="tab-icon">📈</span>
+            <span class="tab-text">Lãi Kép & Đầu Tư</span>
+          </button>
+          <button type="button" class="aio-tab-btn" data-module="hub" title="Trung tâm quản lý & tích hợp dự án">
+            <span class="tab-icon">🚀</span>
+            <span class="tab-text">Tất Cả Dự Án</span>
+            <span class="tab-badge">Hub</span>
+          </button>
+        </nav>
+      </div>
+
+      <div class="header-actions">
+        <div class="currency-selector" title="Chọn đơn vị tiền tệ">
+          <button type="button" class="currency-btn active" data-currency="VND">₫ VND</button>
+          <button type="button" class="currency-btn" data-currency="USD">$ USD</button>
+        </div>
+        <button id="btn-export-text" class="btn btn-secondary" title="Sao chép bảng phân bổ ra văn bản">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          Sao chép
+        </button>
+        <button id="btn-reset" class="btn btn-ghost" title="Đặt lại về mặc định">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+          Đặt lại
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Area with Modules -->
+    <main class="main-container">
+      
+      <!-- ================================================================= -->
+      <!-- MODULE 1: SMARTBUDGET 100%                                        -->
+      <!-- ================================================================= -->
+      <div id="module-budget" class="aio-module active">
+        <!-- Income Hero Section -->
+        <section class="income-card">
+          <div class="income-input-wrapper">
+            <div class="income-label-row">
+              <label for="income-input" class="income-label">
+                <span class="pulse-dot"></span>
+                NHẬP MỨC LƯƠNG / TỔNG THU NHẬP HÀNG THÁNG
+              </label>
+              <span class="income-hint">Tự động tính tiền ngay khi bạn gõ</span>
+            </div>
+            <div class="income-field-group">
+              <span class="currency-prefix" id="currency-symbol">₫</span>
+              <input 
+                type="text" 
+                id="income-input" 
+                class="income-input" 
+                placeholder="0" 
+                inputmode="numeric" 
+                autocomplete="off"
+                value="20.000.000"
+              />
+              <button id="btn-clear-income" class="btn-clear" title="Xóa số tiền">✕</button>
+            </div>
+            <!-- Quick Amount Buttons -->
+            <div class="quick-amounts">
+              <span class="quick-label">Gợi ý nhanh:</span>
+              <button class="quick-btn" data-val="10000000">10 Triệu</button>
+              <button class="quick-btn" data-val="15000000">15 Triệu</button>
+              <button class="quick-btn active" data-val="20000000">20 Triệu</button>
+              <button class="quick-btn" data-val="30000000">30 Triệu</button>
+              <button class="quick-btn" data-val="50000000">50 Triệu</button>
+              <button class="quick-btn-add" data-add="1000000">+1 Triệu</button>
+              <button class="quick-btn-add" data-add="5000000">+5 Triệu</button>
+            </div>
+          </div>
+
+          <!-- 100% Rule Status & Progress Bar -->
+          <div class="rule-status-container">
+            <div class="status-header">
+              <div class="status-left">
+                <span class="status-badge" id="rule-status-badge">
+                  <span id="rule-status-icon">✓</span>
+                  <span id="rule-status-text">Đủ 100% ngân sách</span>
+                </span>
+                <span class="total-percent-display">
+                  Tổng: <strong id="total-percent-val">100%</strong>
+                </span>
+              </div>
+              <div class="status-actions">
+                <button id="btn-auto-fill-remaining" class="btn-mini btn-action" style="display: none;">
+                  ⚡ Phân bổ nốt <span id="remaining-percent-label">0%</span>
+                </button>
+                <button id="btn-normalize-100" class="btn-mini" title="Tự động chuẩn hóa tỷ lệ tất cả các mục về vừa khớp 100%">
+                  ⚖ Cân bằng về 100%
+                </button>
+              </div>
+            </div>
+
+            <!-- Multi-color Segmented Progress Bar -->
+            <div class="segmented-bar-wrapper">
+              <div class="segmented-bar" id="rule-progress-bar">
+                <!-- Dynamically populated segments -->
+              </div>
+              <div class="bar-marker marker-100" title="Mốc 100%">100%</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Preset Strategies & Controls Bar -->
+        <section class="controls-toolbar">
+          <div class="preset-selector">
+            <span class="toolbar-label">Công thức chi tiêu phổ biến:</span>
+            <div class="preset-chips">
+              <button class="preset-chip active" data-preset="50-30-20">
+                <span class="chip-name">Quy tắc 50/30/20</span>
+                <span class="chip-desc">Thiết yếu 50% • Mong muốn 30% • Tích lũy 20%</span>
+              </button>
+              <button class="preset-chip" data-preset="jars-6">
+                <span class="chip-name">6 Chiếc Lọ (JARS)</span>
+                <span class="chip-desc">55% NEC • 10% FFA • 10% LTSS • 10% EDU • 10% PLAY • 5% GIVE</span>
+              </button>
+              <button class="preset-chip" data-preset="70-20-10">
+                <span class="chip-name">Quy tắc 70/20/10</span>
+                <span class="chip-desc">Sinh hoạt 70% • Đầu tư 20% • Tiết kiệm 10%</span>
+              </button>
+              <button class="preset-chip" data-preset="80-20">
+                <span class="chip-name">Quy tắc 80/20</span>
+                <span class="chip-desc">Chi tiêu 80% • Tự do tài chính 20%</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="toolbar-right">
+            <button id="btn-open-add-modal" class="btn btn-primary">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              Thêm ô chi tiêu mới
+            </button>
+          </div>
+        </section>
+
+        <!-- Dashboard Layout: Left = Categories CRUD Grid, Right = Visual Analytics & Insights -->
+        <div class="dashboard-grid">
+          <!-- Categories Section -->
+          <section class="categories-panel">
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title">Danh sách các khoản chi (<span id="category-count">0</span>)</h2>
+                <p class="panel-desc">Điều chỉnh % hoặc kéo thanh trượt để tính tiền tức thì. Bạn có thể thêm, sửa, xóa bất kỳ ô nào.</p>
+              </div>
+              <div class="quick-filter-sort">
+                <select id="sort-select" class="form-select">
+                  <option value="default">Thứ tự mặc định</option>
+                  <option value="percent-desc">% từ cao đến thấp</option>
+                  <option value="percent-asc">% từ thấp đến cao</option>
+                  <option value="amount-desc">Số tiền lớn nhất</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Cards Grid -->
+            <div class="categories-grid" id="categories-container">
+              <!-- Dynamic Category Cards will be rendered here -->
+            </div>
+
+            <!-- Quick Add Footer Row -->
+            <button id="btn-quick-add-card" class="btn-quick-add-card">
+              <span class="add-icon-circle">+</span>
+              <span>Thêm một ô chi tiêu mới</span>
+            </button>
+          </section>
+
+          <!-- Right Insights & Visual Breakdown Panel -->
+          <aside class="insights-panel">
+            <div class="insight-card summary-overview-card">
+              <h3 class="insight-title">Tổng quan phân bổ</h3>
+              <div class="stat-metrics">
+                <div class="stat-item">
+                  <span class="stat-label">Tổng thu nhập</span>
+                  <span class="stat-value text-accent" id="summary-income">0 ₫</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">Đã phân chia tiền</span>
+                  <span class="stat-value" id="summary-allocated">0 ₫</span>
+                </div>
+                <div class="stat-item" id="summary-remaining-row">
+                  <span class="stat-label" id="summary-remaining-label">Số tiền còn thừa</span>
+                  <span class="stat-value text-emerald" id="summary-remaining">0 ₫</span>
+                </div>
+              </div>
+
+              <!-- Quick Banner to Module 2 -->
+              <div class="compound-link-banner" id="banner-to-compound">
+                <div class="banner-text">
+                  <span class="banner-title">📈 Dự phóng Lãi Kép</span>
+                  <span class="banner-sub">Xem số tiền tích lũy tăng trưởng sau 10 - 20 năm</span>
+                </div>
+                <button type="button" class="btn-mini btn-action" id="btn-jump-to-compound">Tính ngay ↗</button>
+              </div>
+            </div>
+
+            <!-- Donut Chart & Category Breakdown -->
+            <div class="insight-card chart-card">
+              <h3 class="insight-title">Biểu đồ tỷ trọng (%)</h3>
+              <div class="donut-chart-container">
+                <svg id="donut-svg" class="donut-svg" viewBox="0 0 200 200">
+                  <!-- Donut paths rendered by JS -->
+                </svg>
+                <div class="donut-center-info">
+                  <span class="donut-center-percent" id="donut-center-total">100%</span>
+                  <span class="donut-center-sub">Ngân sách</span>
+                </div>
+              </div>
+              <div class="chart-legend" id="chart-legend">
+                <!-- Dynamically populated legend items -->
+              </div>
+            </div>
+
+            <!-- Daily Spending Quick Guide -->
+            <div class="insight-card daily-budget-card">
+              <h3 class="insight-title">💡 Hướng dẫn chi tiêu hàng ngày (30 ngày)</h3>
+              <div class="daily-breakdown-list" id="daily-breakdown-list">
+                <!-- Dynamically filled with /ngày -->
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+
+      <!-- ================================================================= -->
+      <!-- MODULE 2: COMPOUND INTEREST CALCULATOR                            -->
+      <!-- ================================================================= -->
+      <div id="module-compound" class="aio-module" style="display: none;">
+        <div class="compound-container">
+          <div class="module-intro-card">
+            <div class="intro-left">
+              <span class="intro-icon">📈</span>
+              <div>
+                <h2 class="intro-title">Máy Tính Lãi Kép & Tích Lũy Tài Sản</h2>
+                <p class="intro-desc">Khám phá sức mạnh của kỳ quan thứ 8 thế giới: Dự phóng khối tài sản bạn sẽ sở hữu khi kiên trì tích lũy hàng tháng.</p>
+              </div>
+            </div>
+            <div class="intro-right">
+              <button type="button" class="btn btn-secondary" id="btn-sync-from-budget">
+                ⚡ Lấy số tiền từ SmartBudget
+              </button>
+            </div>
+          </div>
+
+          <div class="compound-grid">
+            <!-- Left: Compound Inputs -->
+            <div class="compound-inputs-card">
+              <h3 class="section-heading">Thông số đầu tư</h3>
+
+              <div class="form-group mb-4">
+                <label for="ci-initial" class="form-label">Số tiền gốc ban đầu</label>
+                <div class="input-with-prefix">
+                  <span class="field-prefix" id="ci-currency-prefix-1">₫</span>
+                  <input type="text" id="ci-initial" class="form-input text-mono font-bold" value="20.000.000" inputmode="numeric">
+                </div>
+                <div class="quick-chips-row">
+                  <button class="chip-sm" data-ci-initial="0">0 đ</button>
+                  <button class="chip-sm" data-ci-initial="10000000">10 Tr</button>
+                  <button class="chip-sm active" data-ci-initial="20000000">20 Tr</button>
+                  <button class="chip-sm" data-ci-initial="50000000">50 Tr</button>
+                  <button class="chip-sm" data-ci-initial="100000000">100 Tr</button>
+                </div>
+              </div>
+
+              <div class="form-group mb-4">
+                <div class="label-with-badge">
+                  <label for="ci-monthly" class="form-label">Tiền tích lũy thêm mỗi tháng</label>
+                  <span class="badge-accent" id="ci-source-badge">Tự nhập</span>
+                </div>
+                <div class="input-with-prefix">
+                  <span class="field-prefix" id="ci-currency-prefix-2">₫</span>
+                  <input type="text" id="ci-monthly" class="form-input text-mono font-bold" value="4.000.000" inputmode="numeric">
+                </div>
+                <div class="quick-chips-row">
+                  <button class="chip-sm" data-ci-monthly="2000000">2 Tr/th</button>
+                  <button class="chip-sm active" data-ci-monthly="4000000">4 Tr/th</button>
+                  <button class="chip-sm" data-ci-monthly="6000000">6 Tr/th</button>
+                  <button class="chip-sm" data-ci-monthly="10000000">10 Tr/th</button>
+                </div>
+              </div>
+
+              <div class="form-group mb-4">
+                <div class="label-with-val">
+                  <label for="ci-rate" class="form-label">Lãi suất kỳ vọng mỗi năm</label>
+                  <span class="live-val-tag" id="ci-rate-val">10% / năm</span>
+                </div>
+                <input type="range" id="ci-rate" class="percent-slider" min="1" max="30" step="0.5" value="10">
+                <div class="quick-chips-row">
+                  <button class="chip-sm" data-ci-rate="6">Gửi bank (6%)</button>
+                  <button class="chip-sm active" data-ci-rate="10">Quỹ mở (10%)</button>
+                  <button class="chip-sm" data-ci-rate="12">Cổ phiếu (12%)</button>
+                  <button class="chip-sm" data-ci-rate="15">Tăng trưởng (15%)</button>
+                </div>
+              </div>
+
+              <div class="form-group mb-4">
+                <div class="label-with-val">
+                  <label for="ci-years" class="form-label">Thời gian đầu tư (Năm)</label>
+                  <span class="live-val-tag" id="ci-years-val">15 Năm</span>
+                </div>
+                <input type="range" id="ci-years" class="percent-slider" min="1" max="40" step="1" value="15">
+                <div class="quick-chips-row">
+                  <button class="chip-sm" data-ci-years="5">5 Năm</button>
+                  <button class="chip-sm" data-ci-years="10">10 Năm</button>
+                  <button class="chip-sm active" data-ci-years="15">15 Năm</button>
+                  <button class="chip-sm" data-ci-years="20">20 Năm</button>
+                  <button class="chip-sm" data-ci-years="30">30 Năm</button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Định kỳ tính lãi</label>
+                <div class="period-selector">
+                  <button type="button" class="period-btn active" data-period="monthly">Hàng tháng (Chuẩn)</button>
+                  <button type="button" class="period-btn" data-period="annually">Hàng năm</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: Compound Results & Visual Insights -->
+            <div class="compound-results-col">
+              <!-- Big Highlight Card -->
+              <div class="ci-summary-card">
+                <span class="ci-summary-title">TỔNG GIÁ TRỊ TƯƠNG LAI DỰ KIẾN</span>
+                <div class="ci-big-number" id="ci-result-total">0 ₫</div>
+                <div class="ci-summary-sub">
+                  Sau <strong id="ci-summary-years">15</strong> năm kiên trì đầu tư
+                </div>
+
+                <div class="ci-metrics-split">
+                  <div class="ci-metric-item">
+                    <span class="ci-metric-dot bg-blue"></span>
+                    <div>
+                      <span class="ci-metric-label">Tiền gốc đã nộp</span>
+                      <span class="ci-metric-val" id="ci-result-principal">0 ₫</span>
+                    </div>
+                  </div>
+                  <div class="ci-metric-item">
+                    <span class="ci-metric-dot bg-emerald"></span>
+                    <div>
+                      <span class="ci-metric-label">Tiền lãi sinh ra</span>
+                      <span class="ci-metric-val text-emerald" id="ci-result-interest">0 ₫</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Visual Bar Comparison -->
+                <div class="ci-bar-wrapper">
+                  <div class="ci-bar">
+                    <div class="ci-bar-principal" id="ci-bar-principal" style="width: 50%;"></div>
+                    <div class="ci-bar-interest" id="ci-bar-interest" style="width: 50%;"></div>
+                  </div>
+                  <div class="ci-bar-legend">
+                    <span id="ci-pct-principal">Gốc: 50%</span>
+                    <span id="ci-pct-interest">Lãi: 50%</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Milestone Table Card -->
+              <div class="insight-card ci-milestone-card">
+                <h3 class="insight-title">📅 Cột mốc tích lũy theo thời gian</h3>
+                <div class="milestone-table-wrapper">
+                  <table class="milestone-table">
+                    <thead>
+                      <tr>
+                        <th>Cột mốc</th>
+                        <th>Tiền gốc</th>
+                        <th>Tiền lãi</th>
+                        <th>Tổng tài sản</th>
+                      </tr>
+                    </thead>
+                    <tbody id="ci-milestones-body">
+                      <!-- Rendered by JS -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================================================================= -->
+      <!-- MODULE 3: ALL IN ONE PROJECTS HUB                                -->
+      <!-- ================================================================= -->
+      <div id="module-hub" class="aio-module" style="display: none;">
+        <div class="hub-container">
+          <div class="hub-hero">
+            <span class="hub-hero-badge">ALL IN ONE ECOSYSTEM</span>
+            <h2 class="hub-hero-title">Trung Tâm Tích Hợp Dự Án & Công Cụ</h2>
+            <p class="hub-hero-desc">Quản lý tập trung mọi ứng dụng tài chính, máy tính và tiện ích của bạn trong cùng một source duy nhất.</p>
+          </div>
+
+          <!-- Project Cards Grid -->
+          <div class="hub-projects-grid">
+            <!-- Project 1: SmartBudget -->
+            <div class="hub-project-card active-card">
+              <div class="project-card-header">
+                <div class="project-icon bg-indigo">⚡</div>
+                <span class="project-status-tag status-active">Hoạt động</span>
+              </div>
+              <h3 class="project-title">SmartBudget 100%</h3>
+              <p class="project-desc">Máy tính phân bổ chi tiêu thông minh từ lương theo quy tắc 100%. Tự động tính tiền siêu tốc, hỗ trợ CRUD và các công thức 50/30/20, 6 Chiếc Lọ JARS.</p>
+              <div class="project-card-footer">
+                <span class="project-tag">Tài chính</span>
+                <button type="button" class="btn btn-secondary btn-sm" data-switch="budget">Mở công cụ →</button>
+              </div>
+            </div>
+
+            <!-- Project 2: Compound Calculator -->
+            <div class="hub-project-card active-card">
+              <div class="project-card-header">
+                <div class="project-icon bg-emerald">📈</div>
+                <span class="project-status-tag status-active">Hoạt động</span>
+              </div>
+              <h3 class="project-title">Lãi Kép & Tích Lũy</h3>
+              <p class="project-desc">Máy tính dự phóng tài sản và lãi kép theo thời gian. Tích hợp trực tiếp dữ liệu từ khoản Tiết kiệm & Đầu tư của SmartBudget để lập kế hoạch tự do tài chính.</p>
+              <div class="project-card-footer">
+                <span class="project-tag">Đầu tư</span>
+                <button type="button" class="btn btn-secondary btn-sm" data-switch="compound">Mở công cụ →</button>
+              </div>
+            </div>
+
+            <!-- Project 3: Upcoming Tax Calculator -->
+            <div class="hub-project-card upcoming-card">
+              <div class="project-card-header">
+                <div class="project-icon bg-amber">🧮</div>
+                <span class="project-status-tag status-upcoming">Sắp tích hợp</span>
+              </div>
+              <h3 class="project-title">Máy Tính Thuế TNCN</h3>
+              <p class="project-desc">Tính thuế thu nhập cá nhân lũy tiến từng phần, bảo hiểm bắt buộc (BHXH, BHYT, BHTN) và các mức giảm trừ gia cảnh người phụ thuộc mới nhất.</p>
+              <div class="project-card-footer">
+                <span class="project-tag">Lương & Thuế</span>
+                <span class="text-muted text-xs">Module mẫu sẵn sàng</span>
+              </div>
+            </div>
+
+            <!-- Project 4: Upcoming Loan & Mortgage -->
+            <div class="hub-project-card upcoming-card">
+              <div class="project-card-header">
+                <div class="project-icon bg-rose">🏠</div>
+                <span class="project-status-tag status-upcoming">Sắp tích hợp</span>
+              </div>
+              <h3 class="project-title">Kế Hoạch Vay Mua Nhà / Xe</h3>
+              <p class="project-desc">Lập bảng kế hoạch trả góp ngân hàng dư nợ giảm dần, tính chi phí lãi vay và kiểm tra tỷ lệ an toàn nợ trên thu nhập hàng tháng.</p>
+              <div class="project-card-footer">
+                <span class="project-tag">Ngân hàng</span>
+                <span class="text-muted text-xs">Module mẫu sẵn sàng</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Developer Guide: How to Add New Projects -->
+          <div class="hub-guide-card">
+            <h3 class="guide-title">🛠️ Hướng dẫn tích hợp thêm dự án mới vào source `all_in_one`</h3>
+            <div class="guide-steps">
+              <div class="guide-step">
+                <div class="step-num">1</div>
+                <div>
+                  <strong>Thêm nút điều hướng (Tab) trong Header:</strong>
+                  <code>&lt;button class="aio-tab-btn" data-module="ten_du_an"&gt;Tên Dự Án&lt;/button&gt;</code>
+                </div>
+              </div>
+              <div class="guide-step">
+                <div class="step-num">2</div>
+                <div>
+                  <strong>Tạo Container Module trong `&lt;main&gt;`:</strong>
+                  <code>&lt;div id="module-ten_du_an" class="aio-module" style="display:none;"&gt;...&lt;/div&gt;</code>
+                </div>
+              </div>
+              <div class="guide-step">
+                <div class="step-num">3</div>
+                <div>
+                  <strong>Viết logic tương tác trong `app.js` hoặc file JS riêng:</strong>
+                  <span>Hệ thống router tự động xử lý chuyển đổi giữa các module mà không gây xung đột dữ liệu.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- Modal: Add / Edit Category for SmartBudget -->
+    <div class="modal-overlay" id="category-modal" style="display: none;">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 class="modal-title" id="modal-title">Thêm ô chi tiêu mới</h3>
+          <button class="modal-close" id="modal-close-btn">&times;</button>
+        </div>
+        <form id="category-form" class="modal-body">
+          <input type="hidden" id="form-category-id" value="">
+          
+          <div class="form-group">
+            <label for="form-name" class="form-label">Tên khoản chi <span class="required">*</span></label>
+            <input type="text" id="form-name" class="form-input" placeholder="Ví dụ: Tiền ăn uống, Tiền nhà, Đầu tư..." required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label for="form-percent" class="form-label">Tỷ lệ phần trăm (%) <span class="required">*</span></label>
+              <div class="input-with-suffix">
+                <input type="number" id="form-percent" class="form-input" min="0" max="100" step="0.5" placeholder="0" required>
+                <span class="input-suffix">%</span>
+              </div>
+            </div>
+            <div class="form-group flex-1">
+              <label class="form-label">Tự động tính tiền</label>
+              <div class="calc-preview" id="form-calc-preview">0 ₫</div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Biểu tượng gợi nhớ (Icon)</label>
+            <div class="emoji-picker" id="emoji-picker">
+              <button type="button" class="emoji-btn active" data-icon="🏠">🏠</button>
+              <button type="button" class="emoji-btn" data-icon="🍔">🍔</button>
+              <button type="button" class="emoji-btn" data-icon="🚗">🚗</button>
+              <button type="button" class="emoji-btn" data-icon="📈">📈</button>
+              <button type="button" class="emoji-btn" data-icon="💰">💰</button>
+              <button type="button" class="emoji-btn" data-icon="🎓">🎓</button>
+              <button type="button" class="emoji-btn" data-icon="☕">☕</button>
+              <button type="button" class="emoji-btn" data-icon="✈️">✈️</button>
+              <button type="button" class="emoji-btn" data-icon="🏥">🏥</button>
+              <button type="button" class="emoji-btn" data-icon="🎁">🎁</button>
+              <button type="button" class="emoji-btn" data-icon="🛍️">🛍️</button>
+              <button type="button" class="emoji-btn" data-icon="📱">📱</button>
+              <button type="button" class="emoji-btn" data-icon="⚡">⚡</button>
+              <button type="button" class="emoji-btn" data-icon="🛡️">🛡️</button>
+            </div>
+            <input type="hidden" id="form-icon" value="🏠">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Màu sắc nhận diện</label>
+            <div class="color-picker" id="color-picker">
+              <button type="button" class="color-circle active" data-color="#3b82f6" style="--c: #3b82f6"></button>
+              <button type="button" class="color-circle" data-color="#10b981" style="--c: #10b981"></button>
+              <button type="button" class="color-circle" data-color="#8b5cf6" style="--c: #8b5cf6"></button>
+              <button type="button" class="color-circle" data-color="#ec4899" style="--c: #ec4899"></button>
+              <button type="button" class="color-circle" data-color="#f59e0b" style="--c: #f59e0b"></button>
+              <button type="button" class="color-circle" data-color="#06b6d4" style="--c: #06b6d4"></button>
+              <button type="button" class="color-circle" data-color="#ef4444" style="--c: #ef4444"></button>
+              <button type="button" class="color-circle" data-color="#14b8a6" style="--c: #14b8a6"></button>
+              <button type="button" class="color-circle" data-color="#f97316" style="--c: #f97316"></button>
+            </div>
+            <input type="hidden" id="form-color" value="#3b82f6">
+          </div>
+
+          <div class="form-group">
+            <label for="form-note" class="form-label">Ghi chú (Tùy chọn)</label>
+            <input type="text" id="form-note" class="form-input" placeholder="Ví dụ: Gồm tiền trọ, điện nước, net...">
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-ghost" id="modal-cancel-btn">Hủy bỏ</button>
+            <button type="submit" class="btn btn-primary" id="modal-submit-btn">Lưu khoản chi</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast-container" style="display: none;">
+      <span class="toast-icon">✓</span>
+      <span class="toast-msg" id="toast-msg">Đã cập nhật thành công!</span>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
