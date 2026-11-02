@@ -27,7 +27,7 @@ function switchModule(moduleName) {
   });
 
   // Switch Module Views
-  const modules = ['budget', 'compound', 'hub'];
+  const modules = ['budget', 'compound', 'hub', 'notes'];
   modules.forEach(mod => {
     const el = document.getElementById(`module-${mod}`);
     if (el) {
@@ -46,6 +46,8 @@ function switchModule(moduleName) {
     renderCompound();
   } else if (moduleName === 'budget') {
     render();
+  } else if (moduleName === 'notes') {
+    renderNotesApp();
   }
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1186,16 +1188,641 @@ function setupEventListeners() {
   }
 }
 
+// =============================================================================
+// MODULE 3: APPLE NOTES PRO (STATE & ENGINE)
+// =============================================================================
+
+const NOTES_STORAGE_KEY = 'aio_apple_notes_data';
+
+const DEFAULT_STARTER_NOTES = [
+  {
+    id: 'note_1',
+    folder: 'budget',
+    title: 'Kế hoạch tài chính & kiểm soát dòng tiền',
+    content: `<div>Mục tiêu phân bổ chi tiêu tháng này theo chuẩn 100%:</div>
+<div class="apple-checklist-item checked"><span class="apple-checkbox" contenteditable="false">✓</span><span class="checklist-text">Cố định tiền nhà & hóa đơn thiết yếu (50%)</span></div>
+<div class="apple-checklist-item checked"><span class="apple-checkbox" contenteditable="false">✓</span><span class="checklist-text">Trích ngay 20% vào quỹ tiết kiệm / đầu tư dài hạn</span></div>
+<div class="apple-checklist-item"><span class="apple-checkbox" contenteditable="false"></span><span class="checklist-text">Chi tiêu ăn uống & sinh hoạt dưới 250.000 ₫/ngày</span></div>
+<div class="apple-checklist-item"><span class="apple-checkbox" contenteditable="false"></span><span class="checklist-text">Tổng kết số dư vào ngày 30 hàng tháng</span></div>`,
+    isPinned: true,
+    updatedAt: Date.now() - 1000 * 60 * 30
+  },
+  {
+    id: 'note_2',
+    folder: 'compound',
+    title: 'Kỷ luật lãi kép và cột mốc tự do tài chính',
+    content: `<div>Nguyên tắc kỳ quan thứ 8 để tiền đẻ ra tiền:</div>
+<div>• <strong>Kiên trì tích lũy:</strong> Gửi đều đặn mỗi tháng không bỏ lỡ.</div>
+<div>• <strong>Lãi suất kỳ vọng:</strong> 10% - 15%/năm qua các quỹ chỉ số và cổ phiếu tăng trưởng.</div>
+<div>• <strong>Không rút vốn sớm:</strong> Để thời gian 10 - 20 năm phát huy sức mạnh nhân đôi tài sản.</div>
+<div>🎯 <em>"Lãi kép là người bạn tốt nhất của người có tính kỷ luật."</em></div>`,
+    isPinned: true,
+    updatedAt: Date.now() - 1000 * 60 * 60 * 3
+  },
+  {
+    id: 'note_3',
+    folder: 'personal',
+    title: 'Lộ trình phát triển All In One Suite',
+    content: `<div>Các công cụ tiếp theo sẽ tích hợp vào hệ sinh thái:</div>
+<div class="apple-checklist-item checked"><span class="apple-checkbox" contenteditable="false">✓</span><span class="checklist-text">SmartBudget 100% (Phân bổ chi tiêu tự động)</span></div>
+<div class="apple-checklist-item checked"><span class="apple-checkbox" contenteditable="false">✓</span><span class="checklist-text">Lãi kép & Tích lũy tài sản dài hạn</span></div>
+<div class="apple-checklist-item checked"><span class="apple-checkbox" contenteditable="false">✓</span><span class="checklist-text">Apple Notes Pro ghi chú theo từng dự án</span></div>
+<div class="apple-checklist-item"><span class="apple-checkbox" contenteditable="false"></span><span class="checklist-text">Tích hợp Bảng trắng Whiteboard / Canvas vẽ tư duy</span></div>
+<div class="apple-checklist-item"><span class="apple-checkbox" contenteditable="false"></span><span class="checklist-text">Tính thuế TNCN & kế hoạch trả góp ngân hàng</span></div>`,
+    isPinned: false,
+    updatedAt: Date.now() - 1000 * 60 * 60 * 24
+  }
+];
+
+const notesState = {
+  notes: [],
+  activeNoteId: null,
+  activeFolder: 'all',
+  searchQuery: ''
+};
+
+function loadNotesFromStorage() {
+  try {
+    const raw = localStorage.getItem(NOTES_STORAGE_KEY);
+    if (raw) {
+      const data = JSON.parse(raw);
+      if (Array.isArray(data) && data.length > 0) {
+        notesState.notes = data;
+      } else {
+        notesState.notes = JSON.parse(JSON.stringify(DEFAULT_STARTER_NOTES));
+      }
+    } else {
+      notesState.notes = JSON.parse(JSON.stringify(DEFAULT_STARTER_NOTES));
+    }
+  } catch (e) {
+    console.warn('Failed to load notes:', e);
+    notesState.notes = JSON.parse(JSON.stringify(DEFAULT_STARTER_NOTES));
+  }
+
+  if (notesState.notes.length > 0 && !notesState.activeNoteId) {
+    notesState.activeNoteId = notesState.notes[0].id;
+  }
+}
+
+function saveNotesToStorage() {
+  try {
+    localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(notesState.notes));
+  } catch (e) {
+    console.warn('Failed to save notes:', e);
+  }
+}
+
+function formatNoteDate(timestamp) {
+  if (!timestamp) return '';
+  const d = new Date(timestamp);
+  const now = new Date();
+  
+  const isToday = d.toDateString() === now.toDateString();
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  
+  if (isToday) {
+    return `${hours}:${minutes}`;
+  }
+  
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  if (d.toDateString() === yesterday.toDateString()) {
+    return 'Hôm qua';
+  }
+  
+  return `${d.getDate()} Th${d.getMonth() + 1}`;
+}
+
+function formatFullTimestamp(timestamp) {
+  if (!timestamp) return '';
+  const d = new Date(timestamp);
+  const day = d.getDate();
+  const month = d.getMonth() + 1;
+  const year = d.getFullYear();
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  return `${day} Tháng ${month}, ${year} lúc ${hours}:${minutes}`;
+}
+
+function getFolderBadge(folderKey) {
+  switch (folderKey) {
+    case 'budget': return { name: 'SmartBudget', icon: '⚡', color: '#6366f1' };
+    case 'compound': return { name: 'Lãi Kép', icon: '📈', color: '#10b981' };
+    case 'personal': return { name: 'Ý tưởng', icon: '💡', color: '#f59e0b' };
+    default: return { name: 'Chung', icon: '📁', color: '#a855f7' };
+  }
+}
+
+function renderNotesApp() {
+  updateFolderCounts();
+  renderNotesList();
+  renderActiveNote();
+}
+
+function updateFolderCounts() {
+  const countAll = document.getElementById('count-all');
+  const countBudget = document.getElementById('count-budget');
+  const countCompound = document.getElementById('count-compound');
+  const countPersonal = document.getElementById('count-personal');
+
+  if (countAll) countAll.textContent = notesState.notes.length;
+  if (countBudget) countBudget.textContent = notesState.notes.filter(n => n.folder === 'budget').length;
+  if (countCompound) countCompound.textContent = notesState.notes.filter(n => n.folder === 'compound').length;
+  if (countPersonal) countPersonal.textContent = notesState.notes.filter(n => n.folder === 'personal').length;
+}
+
+function getFilteredNotes() {
+  let list = [...notesState.notes];
+
+  if (notesState.activeFolder !== 'all') {
+    list = list.filter(n => n.folder === notesState.activeFolder);
+  }
+
+  if (notesState.searchQuery.trim()) {
+    const q = notesState.searchQuery.toLowerCase();
+    list = list.filter(n => 
+      (n.title && n.title.toLowerCase().includes(q)) ||
+      (n.content && n.content.toLowerCase().includes(q))
+    );
+  }
+
+  list.sort((a, b) => {
+    if (a.isPinned && !b.isPinned) return -1;
+    if (!a.isPinned && b.isPinned) return 1;
+    return (b.updatedAt || 0) - (a.updatedAt || 0);
+  });
+
+  return list;
+}
+
+function renderNotesList() {
+  const container = document.getElementById('notes-items-container');
+  if (!container) return;
+
+  const filtered = getFilteredNotes();
+  container.innerHTML = '';
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div class="notes-empty-state">
+        <span class="empty-icon">📝</span>
+        <p class="empty-title">Không tìm thấy ghi chú</p>
+        <p class="empty-desc">Bấm nút "Ghi chú mới" ở trên để bắt đầu soạn thảo.</p>
+      </div>
+    `;
+    return;
+  }
+
+  const pinnedList = filtered.filter(n => n.isPinned);
+  const regularList = filtered.filter(n => !n.isPinned);
+
+  if (pinnedList.length > 0) {
+    const pinnedHeader = document.createElement('div');
+    pinnedHeader.className = 'notes-section-heading';
+    pinnedHeader.innerHTML = `<span>📌 ĐÃ GHIM</span>`;
+    container.appendChild(pinnedHeader);
+
+    pinnedList.forEach(note => {
+      container.appendChild(createNoteListItemElement(note));
+    });
+  }
+
+  if (regularList.length > 0) {
+    if (pinnedList.length > 0) {
+      const regularHeader = document.createElement('div');
+      regularHeader.className = 'notes-section-heading';
+      regularHeader.innerHTML = `<span>GHI CHÚ</span>`;
+      container.appendChild(regularHeader);
+    }
+
+    regularList.forEach(note => {
+      container.appendChild(createNoteListItemElement(note));
+    });
+  }
+}
+
+function createNoteListItemElement(note) {
+  const item = document.createElement('div');
+  item.className = 'note-list-item';
+  if (note.id === notesState.activeNoteId) {
+    item.classList.add('active');
+  }
+
+  const badge = getFolderBadge(note.folder);
+  const plainText = (note.content || '').replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim();
+  const snippet = plainText || 'Không có nội dung bổ sung';
+  const displayTitle = (note.title || '').trim() || 'Ghi chú mới';
+
+  item.innerHTML = `
+    <div class="note-item-top">
+      <h4 class="note-item-title">${escapeHtml(displayTitle)}</h4>
+      ${note.isPinned ? '<span class="note-item-pin" title="Đã ghim">📌</span>' : ''}
+    </div>
+    <div class="note-item-meta">
+      <span class="note-item-date">${formatNoteDate(note.updatedAt)}</span>
+      <span class="note-item-snippet">${escapeHtml(snippet)}</span>
+    </div>
+    <div class="note-item-badge">
+      <span class="badge-icon">${badge.icon}</span>
+      <span>${badge.name}</span>
+    </div>
+  `;
+
+  item.addEventListener('click', () => {
+    selectNote(note.id);
+  });
+
+  return item;
+}
+
+function selectNote(noteId) {
+  notesState.activeNoteId = noteId;
+  renderNotesList();
+  renderActiveNote();
+
+  // Mobile navigation
+  const appEl = document.getElementById('apple-notes-app');
+  if (appEl) {
+    appEl.classList.add('mobile-show-editor');
+  }
+}
+
+function renderActiveNote() {
+  const note = notesState.notes.find(n => n.id === notesState.activeNoteId);
+
+  const titleInput = document.getElementById('note-title-input');
+  const timestampEl = document.getElementById('note-timestamp');
+  const bodyEditor = document.getElementById('note-body-editor');
+  const folderSelect = document.getElementById('note-folder-select');
+  const pinIcon = document.getElementById('pin-icon');
+  const charCount = document.getElementById('char-count');
+  const btnTogglePin = document.getElementById('btn-toggle-pin');
+
+  if (!note) {
+    if (titleInput) titleInput.value = '';
+    if (timestampEl) timestampEl.textContent = '--:--';
+    if (bodyEditor) bodyEditor.innerHTML = '<div style="color: var(--text-muted); padding: 20px 0;">Chọn một ghi chú bên trái hoặc bấm "Ghi chú mới" để bắt đầu.</div>';
+    if (charCount) charCount.textContent = '0 từ';
+    return;
+  }
+
+  if (titleInput && document.activeElement !== titleInput) {
+    titleInput.value = note.title || '';
+  }
+
+  if (timestampEl) {
+    timestampEl.textContent = formatFullTimestamp(note.updatedAt);
+  }
+
+  if (folderSelect) {
+    folderSelect.value = note.folder || 'all';
+  }
+
+  if (btnTogglePin && pinIcon) {
+    btnTogglePin.classList.toggle('active', !!note.isPinned);
+    pinIcon.textContent = note.isPinned ? '📌' : '📍';
+  }
+
+  if (bodyEditor && document.activeElement !== bodyEditor) {
+    bodyEditor.innerHTML = note.content || '<div></div>';
+    attachCheckboxHandlers();
+  }
+
+  updateWordCount();
+}
+
+function attachCheckboxHandlers() {
+  const bodyEditor = document.getElementById('note-body-editor');
+  if (!bodyEditor) return;
+
+  bodyEditor.querySelectorAll('.apple-checklist-item').forEach(item => {
+    const cb = item.querySelector('.apple-checkbox');
+    if (cb) {
+      cb.onclick = (e) => {
+        e.stopPropagation();
+        item.classList.toggle('checked');
+        cb.textContent = item.classList.contains('checked') ? '✓' : '';
+        triggerAutoSave();
+      };
+    }
+  });
+}
+
+function updateWordCount() {
+  const note = notesState.notes.find(n => n.id === notesState.activeNoteId);
+  const charCount = document.getElementById('char-count');
+  if (!charCount || !note) return;
+
+  const text = (note.content || '').replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim();
+  const words = text ? text.split(/\s+/).length : 0;
+  charCount.textContent = `${words} từ`;
+}
+
+let saveTimeout = null;
+function triggerAutoSave() {
+  const note = notesState.notes.find(n => n.id === notesState.activeNoteId);
+  if (!note) return;
+
+  const titleInput = document.getElementById('note-title-input');
+  const bodyEditor = document.getElementById('note-body-editor');
+  const saveStatus = document.getElementById('save-status');
+
+  if (titleInput) note.title = titleInput.value.trim();
+  if (bodyEditor) note.content = bodyEditor.innerHTML;
+  note.updatedAt = Date.now();
+
+  const timestampEl = document.getElementById('note-timestamp');
+  if (timestampEl) timestampEl.textContent = formatFullTimestamp(note.updatedAt);
+
+  if (saveStatus) {
+    saveStatus.textContent = 'Đang lưu...';
+  }
+
+  if (saveTimeout) clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(() => {
+    saveNotesToStorage();
+    updateFolderCounts();
+    renderNotesList();
+    updateWordCount();
+    if (saveStatus) saveStatus.textContent = 'Đã lưu tự động';
+  }, 400);
+}
+
+function createNewNote() {
+  let targetFolder = notesState.activeFolder;
+  if (targetFolder === 'all') targetFolder = 'personal';
+
+  const newNote = {
+    id: 'note_' + Date.now(),
+    folder: targetFolder,
+    title: '',
+    content: '<div></div>',
+    isPinned: false,
+    updatedAt: Date.now()
+  };
+
+  notesState.notes.unshift(newNote);
+  notesState.activeNoteId = newNote.id;
+
+  saveNotesToStorage();
+  renderNotesApp();
+
+  const titleInput = document.getElementById('note-title-input');
+  if (titleInput) {
+    setTimeout(() => {
+      titleInput.focus();
+    }, 100);
+  }
+
+  const appEl = document.getElementById('apple-notes-app');
+  if (appEl) {
+    appEl.classList.add('mobile-show-editor');
+  }
+
+  showToast('Đã tạo ghi chú mới!');
+}
+
+function deleteActiveNote() {
+  const note = notesState.notes.find(n => n.id === notesState.activeNoteId);
+  if (!note) return;
+
+  const noteTitle = note.title || 'ghi chú này';
+  if (confirm(`Bạn có chắc chắn muốn xóa "${noteTitle}" không?`)) {
+    notesState.notes = notesState.notes.filter(n => n.id !== note.id);
+    
+    if (notesState.notes.length > 0) {
+      notesState.activeNoteId = notesState.notes[0].id;
+    } else {
+      notesState.activeNoteId = null;
+    }
+
+    saveNotesToStorage();
+    renderNotesApp();
+    showToast('Đã xóa ghi chú thành công!');
+
+    const appEl = document.getElementById('apple-notes-app');
+    if (appEl && !notesState.activeNoteId) {
+      appEl.classList.remove('mobile-show-editor');
+    }
+  }
+}
+
+function togglePinActiveNote() {
+  const note = notesState.notes.find(n => n.id === notesState.activeNoteId);
+  if (!note) return;
+
+  note.isPinned = !note.isPinned;
+  note.updatedAt = Date.now();
+  saveNotesToStorage();
+  renderNotesApp();
+  showToast(note.isPinned ? 'Đã ghim ghi chú lên đầu!' : 'Đã bỏ ghim ghi chú!');
+}
+
+function copyNoteContent() {
+  const note = notesState.notes.find(n => n.id === notesState.activeNoteId);
+  if (!note) return;
+
+  const plainText = (note.content || '')
+    .replace(/<div class="apple-checklist-item([^>]*)"><span class="apple-checkbox([^>]*)">(.*?)<\/span><span class="checklist-text">(.*?)<\/span><\/div>/g, '[ ] $4\n')
+    .replace(/<[^>]*>?/gm, '\n')
+    .replace(/\n\s*\n/g, '\n')
+    .trim();
+
+  const fullCopy = `${note.title || 'Ghi chú'}\n\n${plainText}\n\n(Tạo bằng All In One - Apple Notes Pro)`;
+
+  navigator.clipboard.writeText(fullCopy).then(() => {
+    showToast('Đã sao chép nội dung ghi chú!');
+  }).catch(() => {
+    showToast('Sao chép thất bại');
+  });
+}
+
+function insertChecklistItem() {
+  const bodyEditor = document.getElementById('note-body-editor');
+  if (!bodyEditor) return;
+
+  const item = document.createElement('div');
+  item.className = 'apple-checklist-item';
+  item.innerHTML = `<span class="apple-checkbox" contenteditable="false"></span><span class="checklist-text">Việc cần làm...</span>`;
+  bodyEditor.appendChild(item);
+
+  attachCheckboxHandlers();
+  triggerAutoSave();
+
+  const textSpan = item.querySelector('.checklist-text');
+  if (textSpan) {
+    const range = document.createRange();
+    const sel = window.getSelection();
+    range.selectNodeContents(textSpan);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+}
+
+function insertBulletItem() {
+  const bodyEditor = document.getElementById('note-body-editor');
+  if (!bodyEditor) return;
+
+  const bullet = document.createElement('div');
+  bullet.innerHTML = `• Ghi chú danh sách...`;
+  bodyEditor.appendChild(bullet);
+  triggerAutoSave();
+}
+
+function insertHeadingItem() {
+  const bodyEditor = document.getElementById('note-body-editor');
+  if (!bodyEditor) return;
+
+  const h2 = document.createElement('h2');
+  h2.className = 'note-subheading';
+  h2.textContent = 'Tiêu đề phụ';
+  bodyEditor.appendChild(h2);
+  triggerAutoSave();
+}
+
+function insertBudgetSummaryToNote() {
+  const bodyEditor = document.getElementById('note-body-editor');
+  if (!bodyEditor) return;
+
+  const totalPercent = getTotalPercent();
+  const summaryBox = document.createElement('div');
+  summaryBox.className = 'note-budget-embed';
+  
+  let rowsHtml = '';
+  state.categories.forEach(cat => {
+    const money = (state.income * cat.percent) / 100;
+    rowsHtml += `<div>• ${cat.icon || '📌'} ${escapeHtml(cat.name)} (${cat.percent}%): <strong>${formatMoney(money)}</strong></div>`;
+  });
+
+  summaryBox.innerHTML = `
+    <div class="embed-title">📊 TỔNG HỢP CHI TIÊU SMARTBUDGET (${formatMoney(state.income)})</div>
+    ${rowsHtml}
+    <div class="embed-footer">Tổng ngân sách phân bổ: ${totalPercent}%</div>
+  `;
+
+  bodyEditor.appendChild(summaryBox);
+  triggerAutoSave();
+  showToast('Đã chèn bảng chi tiêu SmartBudget vào ghi chú!');
+}
+
+function initAppleNotes() {
+  loadNotesFromStorage();
+
+  // Folder sidebar click
+  document.querySelectorAll('.folder-item').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.folder-item').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      notesState.activeFolder = btn.dataset.folder;
+      
+      const label = document.getElementById('current-folder-label');
+      if (label) {
+        label.textContent = btn.querySelector('.folder-name').textContent;
+      }
+      renderNotesList();
+    });
+  });
+
+  // Search input
+  const searchInput = document.getElementById('notes-search-input');
+  const btnClearSearch = document.getElementById('btn-clear-notes-search');
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      notesState.searchQuery = e.target.value;
+      if (btnClearSearch) {
+        btnClearSearch.style.display = notesState.searchQuery ? 'block' : 'none';
+      }
+      renderNotesList();
+    });
+  }
+
+  if (btnClearSearch) {
+    btnClearSearch.addEventListener('click', () => {
+      notesState.searchQuery = '';
+      if (searchInput) searchInput.value = '';
+      btnClearSearch.style.display = 'none';
+      renderNotesList();
+    });
+  }
+
+  // New Note triggers
+  const btnNewNote = document.getElementById('btn-new-note');
+  const btnSidebarNewNote = document.getElementById('btn-sidebar-new-note');
+  if (btnNewNote) btnNewNote.addEventListener('click', createNewNote);
+  if (btnSidebarNewNote) btnSidebarNewNote.addEventListener('click', createNewNote);
+
+  // Editor Actions
+  const btnDelete = document.getElementById('btn-delete-note');
+  const btnPin = document.getElementById('btn-toggle-pin');
+  const btnCopy = document.getElementById('btn-copy-note');
+  const btnAddChecklist = document.getElementById('btn-add-checklist');
+  if (btnDelete) btnDelete.addEventListener('click', deleteActiveNote);
+  if (btnPin) btnPin.addEventListener('click', togglePinActiveNote);
+  if (btnCopy) btnCopy.addEventListener('click', copyNoteContent);
+  if (btnAddChecklist) btnAddChecklist.addEventListener('click', insertChecklistItem);
+
+  // Mobile back button
+  const btnBack = document.getElementById('btn-notes-back');
+  if (btnBack) {
+    btnBack.addEventListener('click', () => {
+      const appEl = document.getElementById('apple-notes-app');
+      if (appEl) {
+        appEl.classList.remove('mobile-show-editor');
+      }
+    });
+  }
+
+  // Folder select inside note editor
+  const folderSelect = document.getElementById('note-folder-select');
+  if (folderSelect) {
+    folderSelect.addEventListener('change', (e) => {
+      const note = notesState.notes.find(n => n.id === notesState.activeNoteId);
+      if (note) {
+        note.folder = e.target.value;
+        saveNotesToStorage();
+        updateFolderCounts();
+        renderNotesList();
+        showToast('Đã đổi danh mục dự án cho ghi chú!');
+      }
+    });
+  }
+
+  // Format chips
+  const chipCheck = document.getElementById('chip-insert-check');
+  const chipBullet = document.getElementById('chip-insert-bullet');
+  const chipH2 = document.getElementById('chip-insert-h2');
+  const chipBudget = document.getElementById('chip-insert-budget');
+  if (chipCheck) chipCheck.addEventListener('click', insertChecklistItem);
+  if (chipBullet) chipBullet.addEventListener('click', insertBulletItem);
+  if (chipH2) chipH2.addEventListener('click', insertHeadingItem);
+  if (chipBudget) chipBudget.addEventListener('click', insertBudgetSummaryToNote);
+
+  // Auto-save on title and body input
+  const titleInput = document.getElementById('note-title-input');
+  const bodyEditor = document.getElementById('note-body-editor');
+  if (titleInput) {
+    titleInput.addEventListener('input', triggerAutoSave);
+  }
+  if (bodyEditor) {
+    bodyEditor.addEventListener('input', triggerAutoSave);
+    bodyEditor.addEventListener('blur', triggerAutoSave);
+  }
+
+  renderNotesApp();
+}
+
 // Initial Boot
 window.addEventListener('DOMContentLoaded', () => {
   loadFromStorage();
   setupEventListeners();
   render();
   renderCompound();
+  initAppleNotes();
 
   // Load last active module
   const savedMod = localStorage.getItem(AIO_STORAGE_KEY_MODULE);
-  if (savedMod && ['budget', 'compound', 'hub'].includes(savedMod)) {
+  if (savedMod && ['budget', 'compound', 'hub', 'notes'].includes(savedMod)) {
     switchModule(savedMod);
   }
 });

@@ -21,7 +21,15 @@ Nền tảng tích hợp đa công cụ & đa dự án cá nhân trong một mã
    - So sánh trực quan tỷ trọng tiền gốc đã nộp vs. tiền lãi sinh sôi từ lãi kép.
    - Bảng theo dõi cột mốc tài sản chi tiết qua các năm.
 
-3. **🚀 All In One Projects Hub (Trung Tâm Quản Lý Dự Án)**:
+3. **📝 Apple Notes Pro (Sổ Ghi Chú & Kế Hoạch Chuẩn macOS/iOS)**:
+   - Giao diện và phong cách thiết kế bám sát Apple Notes (tông vàng ấm đặc trưng, thẻ ghi chú bo góc, nền kính đen).
+   - Danh sách việc cần làm (Checklist) với nút tròn bấm tích chọn gạch ngang tương tác mượt mà.
+   - Phân loại ghi chú theo từng dự án: SmartBudget ⚡, Lãi kép 📈, Ý tưởng & Kế hoạch 💡, Chung 📁.
+   - Tìm kiếm ghi chú tức thì, Ghim lên đầu (Pin 📌), tự động lưu thời gian thực vào LocalStorage.
+   - Nút bấm nhanh trích xuất trực tiếp bảng tóm tắt chi tiêu từ SmartBudget chèn thẳng vào ghi chú.
+   - Tối ưu 100% trên cả Desktop 3 cột và Mobile 1 cột (nút Back "‹ Ghi chú" chuẩn iOS).
+
+4. **🚀 All In One Projects Hub (Trung Tâm Quản Lý Dự Án)**:
    - Nơi hiển thị danh sách các dự án đang hoạt động và các dự án sắp được tích hợp (Thuế TNCN, Lập kế hoạch vay mua nhà/xe, Quản lý tác vụ...).
    - Hướng dẫn chuẩn hóa quy trình tích hợp thêm dự án mới vào source.
 
