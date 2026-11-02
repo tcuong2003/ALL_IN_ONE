@@ -47,6 +47,10 @@
             <span class="tab-icon">📝</span>
             <span class="tab-text">Ghi Chú</span>
           </button>
+          <button type="button" class="aio-tab-btn" data-module="ledger" title="Sổ thu chi Komorebi Kakeibo">
+            <span class="tab-icon">👛</span>
+            <span class="tab-text">Sổ Thu Chi</span>
+          </button>
           <button type="button" class="aio-tab-btn" data-module="hub" title="Trung tâm quản lý & tích hợp dự án">
             <span class="tab-icon">🚀</span>
             <span class="tab-text">Tất Cả Dự Án</span>
@@ -553,7 +557,276 @@
       </div>
 
       <!-- ================================================================= -->
-      <!-- MODULE 4: ALL IN ONE PROJECTS HUB                                -->
+      <!-- MODULE 4: SỔ THU CHI KOMOREBI (KAKEIBO)                           -->
+      <!-- ================================================================= -->
+      <div id="module-ledger" class="aio-module" style="display: none;">
+        <div class="komorebi-app" id="komorebi-app">
+          
+          <!-- Top Sub-Navigation Bar (Nhập vào, Lịch, Báo cáo, Ngân sách) -->
+          <nav class="komo-subnav">
+            <button type="button" class="komo-nav-tab" data-subtab="input">
+              <span class="komo-tab-icon">✏️</span>
+              <span class="komo-tab-text">Nhập vào</span>
+            </button>
+            <button type="button" class="komo-nav-tab active" data-subtab="calendar">
+              <span class="komo-tab-icon">📅</span>
+              <span class="komo-tab-text">Lịch</span>
+            </button>
+            <button type="button" class="komo-nav-tab" data-subtab="report">
+              <span class="komo-tab-icon">📊</span>
+              <span class="komo-tab-text">Báo cáo</span>
+            </button>
+            <button type="button" class="komo-nav-tab" data-subtab="budget">
+              <span class="komo-tab-icon">👛</span>
+              <span class="komo-tab-text">Ngân sách</span>
+            </button>
+          </nav>
+
+          <!-- ============================================================= -->
+          <!-- SUB-VIEW 1: CALENDAR VIEW (LỊCH THU CHI RÕ RÀNG)              -->
+          <!-- ============================================================= -->
+          <div id="komo-view-calendar" class="komo-subview active">
+            <!-- Month Selector Bar -->
+            <div class="komo-month-bar">
+              <button type="button" class="komo-arrow-btn" id="btn-prev-month" title="Tháng trước">‹</button>
+              <div class="komo-month-badge">
+                <span id="calendar-month-label">11/2026</span>
+                <span class="komo-month-range" id="calendar-range-label">(01/11 – 30/11)</span>
+              </div>
+              <button type="button" class="komo-arrow-btn" id="btn-next-month" title="Tháng sau">›</button>
+              <button type="button" class="komo-today-btn" id="btn-today-month">Hôm nay</button>
+            </div>
+
+            <!-- Calendar Matrix -->
+            <div class="komo-calendar-card">
+              <div class="komo-calendar-weekdays">
+                <span class="weekday cn">CN</span>
+                <span class="weekday">T2</span>
+                <span class="weekday">T3</span>
+                <span class="weekday">T4</span>
+                <span class="weekday">T5</span>
+                <span class="weekday">T6</span>
+                <span class="weekday t7">T7</span>
+              </div>
+              <div class="komo-calendar-grid" id="calendar-days-grid">
+                <!-- 35-42 days rendered dynamically by JS -->
+              </div>
+            </div>
+
+            <!-- Monthly Financial Snapshot Summary -->
+            <div class="komo-month-summary-box">
+              <div class="summary-col income-col">
+                <span class="summary-label">Thu nhập</span>
+                <span class="summary-val text-blue" id="cal-month-income">0 ₫</span>
+              </div>
+              <div class="summary-col expense-col">
+                <span class="summary-label">Chi tiêu</span>
+                <span class="summary-val text-orange" id="cal-month-expense">0 ₫</span>
+              </div>
+              <div class="summary-col balance-col">
+                <span class="summary-label">Tổng</span>
+                <span class="summary-val text-emerald font-bold" id="cal-month-balance">0 ₫</span>
+              </div>
+            </div>
+
+            <!-- Selected Day Details & Transactions List -->
+            <div class="komo-day-details-panel">
+              <div class="day-details-header">
+                <div class="day-details-left">
+                  <span class="selected-day-tag" id="selected-day-heading">Hôm nay</span>
+                  <span class="day-net-amount" id="selected-day-net">0 ₫</span>
+                </div>
+                <button type="button" class="btn-add-for-day" id="btn-quick-add-for-day">
+                  + Thêm khoản chi / thu
+                </button>
+              </div>
+
+              <div class="day-transactions-list" id="day-transactions-container">
+                <!-- Rendered by JS -->
+              </div>
+            </div>
+          </div>
+
+          <!-- ============================================================= -->
+          <!-- SUB-VIEW 2: QUICK ENTRY (GHI NHANH CHI TIÊU)                  -->
+          <!-- ============================================================= -->
+          <div id="komo-view-input" class="komo-subview" style="display: none;">
+            <div class="komo-entry-card">
+              <!-- Type Switcher: Tiền chi / Tiền thu -->
+              <div class="entry-type-toggle">
+                <button type="button" class="type-btn active expense" data-entry-type="expense">Tiền chi</button>
+                <button type="button" class="type-btn income" data-entry-type="income">Tiền thu</button>
+              </div>
+
+              <!-- Date Picker Row -->
+              <div class="entry-date-row">
+                <span class="entry-row-label">Ngày</span>
+                <div class="date-navigator">
+                  <button type="button" class="arrow-mini" id="btn-entry-prev-day">‹</button>
+                  <input type="date" id="entry-date-input" class="date-native-input">
+                  <span id="entry-date-display" class="date-text-display">02/11/2026 (Thứ 2)</span>
+                  <button type="button" class="arrow-mini" id="btn-entry-next-day">›</button>
+                </div>
+              </div>
+
+              <!-- Note input -->
+              <div class="entry-field-row">
+                <label for="entry-note-input" class="entry-row-label">Ghi chú</label>
+                <input type="text" id="entry-note-input" class="entry-text-input" placeholder="Ví dụ: Ăn trưa, Cafe, Mua sữa..." autocomplete="off">
+              </div>
+
+              <!-- Money Amount Input -->
+              <div class="entry-field-row amount-row">
+                <span class="entry-row-label" id="entry-amount-label">Tiền chi</span>
+                <div class="entry-amount-wrapper">
+                  <input type="text" id="entry-amount-input" class="entry-amount-input text-mono font-bold" placeholder="0" inputmode="numeric">
+                  <span class="currency-tag">₫</span>
+                  <button type="button" class="btn-clear-entry" id="btn-clear-entry-amount">✕</button>
+                </div>
+              </div>
+
+              <!-- Category Picker Grid -->
+              <div class="entry-categories-section">
+                <div class="cat-section-header">
+                  <span class="entry-row-label">Danh mục</span>
+                  <span class="cat-hint" id="cat-hint-text">Chọn 1 danh mục</span>
+                </div>
+
+                <div class="komo-cat-grid" id="komo-cat-grid">
+                  <!-- Category grid items rendered by JS -->
+                </div>
+              </div>
+
+              <!-- Quick Submit Button -->
+              <div class="entry-submit-row">
+                <button type="button" class="btn-komo-submit" id="btn-submit-transaction">
+                  Nhập khoản chi
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ============================================================= -->
+          <!-- SUB-VIEW 3: REPORTS (BÁO CÁO THEO THÁNG / NĂM)                -->
+          <!-- ============================================================= -->
+          <div id="komo-view-report" class="komo-subview" style="display: none;">
+            <div class="komo-report-container">
+              <!-- Period Toggle: Hàng Tháng / Hàng Năm -->
+              <div class="report-period-bar">
+                <div class="period-pills">
+                  <button type="button" class="period-pill active" data-report-period="monthly">Hàng Tháng</button>
+                  <button type="button" class="period-pill" data-report-period="yearly">Hàng Năm</button>
+                </div>
+
+                <div class="report-date-selector">
+                  <button type="button" class="komo-arrow-btn" id="btn-report-prev">‹</button>
+                  <span class="report-period-label" id="report-period-label">11/2026</span>
+                  <button type="button" class="komo-arrow-btn" id="btn-report-next">›</button>
+                </div>
+              </div>
+
+              <!-- Report Top Stats Triad -->
+              <div class="report-stats-triad">
+                <div class="stat-box expense-box">
+                  <span class="s-label">Chi tiêu</span>
+                  <span class="s-val text-orange" id="report-total-expense">-0 ₫</span>
+                </div>
+                <div class="stat-box income-box">
+                  <span class="s-label">Thu nhập</span>
+                  <span class="s-val text-blue" id="report-total-income">+0 ₫</span>
+                </div>
+                <div class="stat-box balance-box">
+                  <span class="s-label">Thu chi (Dư)</span>
+                  <span class="s-val text-emerald font-bold" id="report-total-balance">+0 ₫</span>
+                </div>
+              </div>
+
+              <!-- Switch Report Tab: Chi tiêu vs Thu nhập -->
+              <div class="report-type-tabs">
+                <button type="button" class="rpt-tab active" data-report-tab="expense">Chi tiêu</button>
+                <button type="button" class="rpt-tab" data-report-tab="income">Thu nhập</button>
+              </div>
+
+              <!-- Donut Chart & Category Ranking List -->
+              <div class="report-body-grid">
+                <!-- Donut Chart Card -->
+                <div class="report-chart-card">
+                  <div class="report-donut-wrapper">
+                    <svg id="komo-report-donut" class="report-donut-svg" viewBox="0 0 220 220">
+                      <!-- Rendered by JS -->
+                    </svg>
+                    <div class="report-donut-center">
+                      <span class="donut-sub-text" id="donut-type-label">Tổng chi</span>
+                      <span class="donut-main-amount text-mono" id="donut-center-amount">0 ₫</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Ranked Category List -->
+                <div class="report-ranking-card">
+                  <h4 class="ranking-title" id="ranking-title">Xếp hạng các khoản chi</h4>
+                  <div class="ranking-list" id="report-ranking-container">
+                    <!-- Rendered by JS -->
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ============================================================= -->
+          <!-- SUB-VIEW 4: BUDGET LIMITS (QUẢN LÝ NGÂN SÁCH)                 -->
+          <!-- ============================================================= -->
+          <div id="komo-view-budget" class="komo-subview" style="display: none;">
+            <div class="komo-budget-container">
+              <!-- Header with Month -->
+              <div class="budget-header-card">
+                <div class="budget-title-wrap">
+                  <h3 class="budget-main-title">Quản lý ngân sách tháng</h3>
+                  <p class="budget-sub-title">Kiểm soát chi tiêu thực tế đối chiếu với định mức ngân sách SmartBudget</p>
+                </div>
+                <div class="budget-actions-wrap">
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-sync-budget-limits">
+                    ⚡ Đồng bộ định mức từ SmartBudget
+                  </button>
+                </div>
+              </div>
+
+              <!-- Total Budget Progress Bar Card -->
+              <div class="total-budget-card">
+                <div class="total-budget-header">
+                  <div>
+                    <span class="tb-title">Tổng ngân sách tháng</span>
+                    <div class="tb-spent-sub">
+                      Ngân sách: <strong id="tb-limit-val">0 ₫</strong> • Đã chi: <span id="tb-spent-val" class="text-orange">0 ₫</span>
+                    </div>
+                  </div>
+                  <div class="tb-right">
+                    <span class="tb-remaining-label">Còn lại:</span>
+                    <span class="tb-remaining-amount text-emerald" id="tb-remaining-val">0 ₫</span>
+                  </div>
+                </div>
+
+                <div class="tb-progress-wrapper">
+                  <div class="tb-progress-bar" id="tb-progress-bar" style="width: 0%;"></div>
+                </div>
+                <div class="tb-progress-footer">
+                  <span id="tb-pct-text">Đã dùng 0%</span>
+                  <span id="tb-status-tip">An toàn trong hạn mức</span>
+                </div>
+              </div>
+
+              <!-- Category Budget List -->
+              <div class="category-budgets-list" id="category-budgets-container">
+                <!-- Dynamically rendered budget progress bars -->
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ================================================================= -->
+      <!-- MODULE 5: ALL IN ONE PROJECTS HUB                                -->
       <!-- ================================================================= -->
       <div id="module-hub" class="aio-module" style="display: none;">
         <div class="hub-container">
@@ -604,6 +877,20 @@
               <div class="project-card-footer">
                 <span class="project-tag">Ghi chú & Dự án</span>
                 <button type="button" class="btn btn-secondary btn-sm" data-switch="notes">Mở công cụ →</button>
+              </div>
+            </div>
+
+            <!-- Project 4: Sổ Thu Chi Komorebi (Kakeibo) -->
+            <div class="hub-project-card active-card">
+              <div class="project-card-header">
+                <div class="project-icon" style="background: rgba(249, 115, 22, 0.15); color: #fb923c;">👛</div>
+                <span class="project-status-tag status-active">Hoạt động</span>
+              </div>
+              <h3 class="project-title">Sổ Thu Chi (Komorebi Kakeibo)</h3>
+              <p class="project-desc">Sổ thu chi tài chính cá nhân kiểu Nhật. Quản lý trực quan theo ma trận Lịch 30 ngày, ghi nhanh chi tiêu 1 chạm, kiểm soát ngân sách theo định mức và phân tích biểu đồ Donut chi tiết.</p>
+              <div class="project-card-footer">
+                <span class="project-tag">Thu chi thực tế</span>
+                <button type="button" class="btn btn-secondary btn-sm" data-switch="ledger">Mở công cụ →</button>
               </div>
             </div>
 

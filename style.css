@@ -2633,6 +2633,1174 @@ body {
 }
 
 /* ==========================================================================
+   MODULE 4: SỔ THU CHI KOMOREBI (KAKEIBO EXPENSE LEDGER)
+   ========================================================================== */
+
+/* Color Utility Helpers */
+.text-orange { color: #f97316 !important; }
+.text-blue { color: #3b82f6 !important; }
+.text-emerald { color: #10b981 !important; }
+.text-rose { color: #f43f5e !important; }
+
+.bg-primary { background: linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important; }
+.bg-warning { background: #f59e0b !important; }
+.bg-danger { background: #ef4444 !important; }
+
+.komorebi-app {
+  max-width: 860px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: fadeIn 0.3s ease;
+}
+
+/* Komorebi Sub-Navigation */
+.komo-subnav {
+  display: flex;
+  gap: 8px;
+  background: rgba(16, 21, 34, 0.7);
+  padding: 6px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  justify-content: space-around;
+}
+
+.komo-nav-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.komo-nav-tab:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.komo-nav-tab.active {
+  color: #fff;
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  box-shadow: 0 4px 16px rgba(249, 115, 22, 0.35);
+}
+
+.komo-tab-icon {
+  font-size: 1.15rem;
+}
+
+.komo-subview {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* 1. CALENDAR VIEW */
+.komo-month-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-card);
+  padding: 12px 18px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  backdrop-filter: blur(12px);
+}
+
+.komo-arrow-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.komo-arrow-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.komo-month-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.komo-month-range {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.komo-today-btn {
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: 20px;
+  background: rgba(249, 115, 22, 0.15);
+  color: #f97316;
+  border: 1px solid rgba(249, 115, 22, 0.3);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.komo-today-btn:hover {
+  background: #f97316;
+  color: #fff;
+}
+
+.komo-calendar-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  overflow: hidden;
+  padding: 16px;
+  box-shadow: var(--shadow-md);
+  backdrop-filter: blur(16px);
+}
+
+.komo-calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 8px;
+}
+
+.komo-calendar-weekdays .weekday.cn {
+  color: #f87171;
+}
+
+.komo-calendar-weekdays .weekday.t7 {
+  color: #60a5fa;
+}
+
+.komo-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.cal-day-cell {
+  min-height: 64px;
+  padding: 6px 4px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  position: relative;
+}
+
+.cal-day-cell:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.cal-day-cell.other-month {
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+.cal-day-cell.cn-col .day-num {
+  color: #f87171;
+}
+
+.cal-day-cell.t7-col .day-num {
+  color: #60a5fa;
+}
+
+.cal-day-cell.is-today {
+  background: rgba(99, 102, 241, 0.12);
+  border-color: rgba(99, 102, 241, 0.4);
+}
+
+.cal-day-cell.is-today .day-num {
+  font-weight: 800;
+  color: #a5b4fc;
+}
+
+.cal-day-cell.is-selected {
+  background: rgba(249, 115, 22, 0.15);
+  border-color: #f97316;
+  box-shadow: 0 0 14px rgba(249, 115, 22, 0.25);
+  transform: translateY(-1px);
+}
+
+.day-num {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  line-height: 1;
+}
+
+.day-amounts {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-end;
+  width: 100%;
+}
+
+.day-badge {
+  font-size: 0.68rem;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  line-height: 1.1;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.day-badge.badge-inc {
+  color: #60a5fa;
+}
+
+.day-badge.badge-exp {
+  color: #fb923c;
+}
+
+/* Monthly Summary Box */
+.komo-month-summary-box {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  text-align: center;
+  gap: 12px;
+  backdrop-filter: blur(12px);
+}
+
+.summary-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.summary-label {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.summary-val {
+  font-size: 1.1rem;
+  font-family: var(--font-mono);
+  font-weight: 700;
+}
+
+/* Selected Day Details Panel */
+.komo-day-details-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  backdrop-filter: blur(16px);
+}
+
+.day-details-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.day-details-left {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.selected-day-tag {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.day-net-amount {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.btn-add-for-day {
+  background: rgba(249, 115, 22, 0.15);
+  border: 1px solid rgba(249, 115, 22, 0.4);
+  color: #f97316;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-add-for-day:hover {
+  background: #f97316;
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.35);
+}
+
+.day-transactions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.day-empty-row {
+  text-align: center;
+  padding: 24px 16px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.komo-tx-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-subtle);
+  transition: var(--transition);
+}
+
+.komo-tx-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.tx-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tx-icon-badge {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+}
+
+.tx-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tx-cat-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.tx-note {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.tx-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tx-amount {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.btn-delete-tx {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-delete-tx:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+/* 2. QUICK ENTRY VIEW */
+.komo-entry-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 26px;
+  max-width: 600px;
+  margin: 0 auto;
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(16px);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.entry-type-toggle {
+  display: flex;
+  background: var(--bg-input);
+  border-radius: 12px;
+  padding: 4px;
+  border: 1px solid var(--border-subtle);
+}
+
+.type-btn {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  background: transparent;
+  border-radius: 9px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.type-btn.active.expense {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.35);
+}
+
+.type-btn.active.income {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
+}
+
+.entry-date-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+}
+
+.date-navigator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+}
+
+.date-native-input {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.date-text-display {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #fff;
+}
+
+.arrow-mini {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.entry-field-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.entry-row-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.entry-text-input {
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  color: #fff;
+  font-size: 0.95rem;
+  outline: none;
+  transition: var(--transition);
+}
+
+.entry-text-input:focus {
+  border-color: #f97316;
+  box-shadow: 0 0 12px rgba(249, 115, 22, 0.25);
+}
+
+.entry-amount-wrapper {
+  display: flex;
+  align-items: center;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 8px 16px;
+}
+
+.entry-amount-wrapper:focus-within {
+  border-color: #f97316;
+  box-shadow: 0 0 12px rgba(249, 115, 22, 0.25);
+}
+
+.entry-amount-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 1.7rem;
+  font-weight: 700;
+  outline: none;
+  font-family: var(--font-mono);
+}
+
+.currency-tag {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-left: 6px;
+}
+
+.btn-clear-entry {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  margin-left: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+}
+
+.btn-clear-entry:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+.entry-categories-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cat-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cat-hint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.komo-cat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.komo-cat-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 6px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-subtle);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.komo-cat-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  transform: translateY(-2px);
+}
+
+.komo-cat-btn.active {
+  background: rgba(249, 115, 22, 0.15);
+  border-color: var(--cat-theme-color, #f97316);
+  box-shadow: 0 0 16px rgba(249, 115, 22, 0.3);
+  transform: scale(1.03);
+}
+
+.cat-icon {
+  font-size: 1.5rem;
+}
+
+.cat-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.btn-komo-submit {
+  width: 100%;
+  padding: 15px;
+  border-radius: var(--radius-md);
+  border: none;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-komo-submit.expense-mode {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  box-shadow: 0 4px 16px rgba(249, 115, 22, 0.35);
+}
+
+.btn-komo-submit.income-mode {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.35);
+}
+
+.btn-komo-submit:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.btn-komo-submit:active {
+  transform: scale(0.98);
+}
+
+/* 3. REPORTS VIEW */
+.komo-report-container {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.report-period-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-card);
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.period-pills {
+  display: flex;
+  background: var(--bg-input);
+  border-radius: 10px;
+  padding: 3px;
+  border: 1px solid var(--border-subtle);
+}
+
+.period-pill {
+  padding: 6px 14px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.period-pill.active {
+  background: #f97316;
+  color: #fff;
+}
+
+.report-date-selector {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.report-period-label {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff;
+  font-family: var(--font-mono);
+}
+
+.report-stats-triad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.stat-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: center;
+}
+
+.s-label {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.s-val {
+  font-size: 1.15rem;
+  font-family: var(--font-mono);
+  font-weight: 700;
+}
+
+.report-type-tabs {
+  display: flex;
+  border-bottom: 2px solid var(--border-subtle);
+  gap: 20px;
+  padding-bottom: 4px;
+}
+
+.rpt-tab {
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  cursor: pointer;
+  position: relative;
+  transition: var(--transition);
+}
+
+.rpt-tab.active {
+  color: #fff;
+}
+
+.rpt-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: #f97316;
+  border-radius: 3px;
+}
+
+.report-body-grid {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.report-chart-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(16px);
+  min-height: 280px;
+}
+
+.report-donut-wrapper {
+  position: relative;
+  width: 220px;
+  height: 220px;
+}
+
+.report-donut-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.report-donut-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  pointer-events: none;
+}
+
+.donut-sub-text {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.donut-main-amount {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #fff;
+  margin-top: 2px;
+}
+
+.report-ranking-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  backdrop-filter: blur(16px);
+}
+
+.ranking-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 10px;
+}
+
+.ranking-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.empty-report-row {
+  text-align: center;
+  padding: 30px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.komo-ranking-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rk-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.rk-cat-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rk-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+
+.rk-name {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.rk-cat-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+}
+
+.rk-amount {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.rk-pct {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  min-width: 45px;
+  text-align: right;
+}
+
+.rk-bar-wrap {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.rk-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+/* 4. BUDGET LIMITS VIEW */
+.komo-budget-container {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.budget-header-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 18px 22px;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.budget-main-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.budget-sub-title {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.total-budget-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  backdrop-filter: blur(16px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.total-budget-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.tb-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.tb-spent-sub {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.tb-right {
+  text-align: right;
+}
+
+.tb-remaining-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.tb-remaining-amount {
+  font-size: 1.25rem;
+  font-weight: 800;
+  font-family: var(--font-mono);
+}
+
+.tb-progress-wrapper {
+  width: 100%;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.tb-progress-bar {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.4s ease;
+}
+
+.tb-progress-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.category-budgets-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.budget-cat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: var(--transition);
+}
+
+.budget-cat-card:hover {
+  background: rgba(28, 38, 62, 0.85);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.bc-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bc-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.bc-icon {
+  font-size: 1.25rem;
+}
+
+.bc-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.bc-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+}
+
+.bc-pct-tag {
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.bc-progress-wrap {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.bc-progress-bar {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.bc-bottom-sub {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+/* ==========================================================================
    Comprehensive Mobile & Tablet Responsive Architecture
    ========================================================================== */
 
@@ -3340,6 +4508,93 @@ body {
 
   .format-chip {
     flex-shrink: 0;
+  }
+
+  /* Komorebi Ledger Mobile Responsive Overrides */
+  .komo-subnav {
+    overflow-x: auto;
+    padding: 4px;
+    gap: 4px;
+    scrollbar-width: none;
+  }
+  .komo-subnav::-webkit-scrollbar {
+    display: none;
+  }
+  .komo-nav-tab {
+    padding: 8px 10px;
+    font-size: 0.85rem;
+    white-space: nowrap;
+  }
+  .komo-month-bar {
+    padding: 10px 12px;
+  }
+  .komo-month-badge {
+    font-size: 1rem;
+  }
+  .komo-month-range {
+    display: none;
+  }
+  .cal-day-cell {
+    min-height: 48px;
+    padding: 4px 2px;
+  }
+  .day-num {
+    font-size: 0.76rem;
+  }
+  .day-badge {
+    font-size: 0.6rem;
+  }
+  .komo-month-summary-box {
+    padding: 10px 12px;
+    gap: 6px;
+  }
+  .summary-val {
+    font-size: 0.92rem;
+  }
+  .komo-entry-card {
+    padding: 18px 14px;
+  }
+  .komo-cat-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .komo-cat-btn {
+    padding: 10px 4px;
+  }
+  .cat-icon {
+    font-size: 1.3rem;
+  }
+  .cat-label {
+    font-size: 0.75rem;
+  }
+  .entry-amount-input {
+    font-size: 1.4rem;
+  }
+  .report-body-grid {
+    grid-template-columns: 1fr;
+  }
+  .report-chart-card {
+    min-height: 240px;
+    padding: 16px;
+  }
+  .report-stats-triad {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .total-budget-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .tb-right {
+    text-align: left;
+    margin-top: 4px;
+  }
+  .budget-header-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  #btn-sync-budget-limits {
+    width: 100%;
   }
 
   /* Toast Notification */

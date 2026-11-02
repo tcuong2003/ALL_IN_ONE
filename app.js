@@ -27,7 +27,7 @@ function switchModule(moduleName) {
   });
 
   // Switch Module Views
-  const modules = ['budget', 'compound', 'hub', 'notes'];
+  const modules = ['budget', 'compound', 'hub', 'notes', 'ledger'];
   modules.forEach(mod => {
     const el = document.getElementById(`module-${mod}`);
     if (el) {
@@ -48,6 +48,8 @@ function switchModule(moduleName) {
     render();
   } else if (moduleName === 'notes') {
     renderNotesApp();
+  } else if (moduleName === 'ledger') {
+    renderLedgerApp();
   }
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1812,6 +1814,891 @@ function initAppleNotes() {
   renderNotesApp();
 }
 
+// =============================================================================
+// MODULE 4: SỔ THU CHI KOMOREBI (KAKEIBO) - STATE & ENGINE
+// =============================================================================
+
+const LEDGER_STORAGE_KEY = 'aio_komorebi_ledger_data';
+const LEDGER_BUDGET_KEY = 'aio_komorebi_budget_limits';
+
+const KOMO_CATEGORIES = {
+  expense: [
+    { id: 'food', name: 'Ăn uống', icon: '🍽️', color: '#f97316' },
+    { id: 'daily', name: 'Chi tiêu hằng ngày', icon: '🧴', color: '#10b981' },
+    { id: 'clothes', name: 'Quần áo', icon: '👕', color: '#3b82f6' },
+    { id: 'cosmetics', name: 'Mỹ phẩm', icon: '💄', color: '#ec4899' },
+    { id: 'social', name: 'Phí giao lưu', icon: '🥂', color: '#eab308' },
+    { id: 'medical', name: 'Y tế', icon: '💊', color: '#14b8a6' },
+    { id: 'education', name: 'Giáo dục', icon: '📚', color: '#8b5cf6' },
+    { id: 'utilities', name: 'Tiền điện/nước', icon: '🚰', color: '#06b6d4' },
+    { id: 'transport', name: 'Đi lại', icon: '🚆', color: '#6366f1' },
+    { id: 'telecom', name: 'Phí liên lạc', icon: '📱', color: '#64748b' },
+    { id: 'house', name: 'Tiền nhà', icon: '🏠', color: '#f59e0b' },
+    { id: 'other', name: 'Khác', icon: '✨', color: '#a855f7' }
+  ],
+  income: [
+    { id: 'salary', name: 'Tiền lương', icon: '💰', color: '#10b981' },
+    { id: 'bonus', name: 'Thưởng', icon: '🎁', color: '#f59e0b' },
+    { id: 'invest', name: 'Đầu tư / Lãi', icon: '📈', color: '#6366f1' },
+    { id: 'side_job', name: 'Nghề phụ', icon: '💼', color: '#3b82f6' },
+    { id: 'other_inc', name: 'Thu khác', icon: '💵', color: '#06b6d4' }
+  ]
+};
+
+const ledgerState = {
+  activeSubTab: 'calendar',
+  currentMonth: new Date().getMonth(),
+  currentYear: new Date().getFullYear(),
+  selectedDateStr: formatYMD(new Date()),
+  entryType: 'expense',
+  entryCategory: 'food',
+  reportPeriod: 'monthly',
+  reportTab: 'expense',
+  transactions: [],
+  budgetLimits: {
+    food: 1800000,
+    daily: 1200000,
+    clothes: 800000,
+    cosmetics: 300000,
+    social: 800000,
+    utilities: 600000,
+    house: 4000000,
+    transport: 500000
+  }
+};
+
+function formatYMD(d) {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function parseYMD(ymdStr) {
+  const [y, m, d] = ymdStr.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function getDayOfWeekName(d) {
+  const days = ['Chủ Nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+  return days[d.getDay()];
+}
+
+function loadLedgerFromStorage() {
+  try {
+    const raw = localStorage.getItem(LEDGER_STORAGE_KEY);
+    if (raw) {
+      const data = JSON.parse(raw);
+      if (Array.isArray(data)) ledgerState.transactions = data;
+    } else {
+      const y = ledgerState.currentYear;
+      const m = String(ledgerState.currentMonth + 1).padStart(2, '0');
+      ledgerState.transactions = [
+        { id: 'tx_1', type: 'income', amount: 15000000, category: 'salary', note: 'Nhận lương tháng', date: `${y}-${m}-01` },
+        { id: 'tx_2', type: 'expense', amount: 4000000, category: 'house', note: 'Tiền thuê nhà & dịch vụ', date: `${y}-${m}-01` },
+        { id: 'tx_3', type: 'expense', amount: 60000, category: 'food', note: 'Ăn trưa cơm văn phòng', date: `${y}-${m}-02` },
+        { id: 'tx_4', type: 'expense', amount: 45000, category: 'transport', note: 'Grab di chuyển', date: `${y}-${m}-02` },
+        { id: 'tx_5', type: 'expense', amount: 350000, category: 'daily', note: 'Tạp hóa siêu thị mini', date: `${y}-${m}-05` },
+        { id: 'tx_6', type: 'expense', amount: 220000, category: 'cosmetics', note: 'Mỹ phẩm dưỡng da', date: `${y}-${m}-08` },
+        { id: 'tx_7', type: 'expense', amount: 150000, category: 'telecom', note: 'Nạp cước điện thoại 4G', date: `${y}-${m}-10` },
+        { id: 'tx_8', type: 'expense', amount: 500000, category: 'social', note: 'Gặp gỡ bạn bè cuối tuần', date: `${y}-${m}-12` },
+        { id: 'tx_9', type: 'expense', amount: 600000, category: 'utilities', note: 'Tiền điện nước sinh hoạt', date: `${y}-${m}-15` }
+      ];
+      saveLedgerToStorage();
+    }
+
+    const rawBudgets = localStorage.getItem(LEDGER_BUDGET_KEY);
+    if (rawBudgets) {
+      ledgerState.budgetLimits = Object.assign(ledgerState.budgetLimits, JSON.parse(rawBudgets));
+    }
+  } catch (e) {
+    console.warn('Ledger load failed:', e);
+  }
+}
+
+function saveLedgerToStorage() {
+  try {
+    localStorage.setItem(LEDGER_STORAGE_KEY, JSON.stringify(ledgerState.transactions));
+    localStorage.setItem(LEDGER_BUDGET_KEY, JSON.stringify(ledgerState.budgetLimits));
+  } catch (e) {
+    console.warn('Ledger save failed:', e);
+  }
+}
+
+function renderLedgerApp() {
+  switchLedgerSubTab(ledgerState.activeSubTab);
+}
+
+function switchLedgerSubTab(tabName) {
+  ledgerState.activeSubTab = tabName;
+
+  document.querySelectorAll('.komo-nav-tab').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.subtab === tabName);
+  });
+
+  const views = ['calendar', 'input', 'report', 'budget'];
+  views.forEach(v => {
+    const el = document.getElementById(`komo-view-${v}`);
+    if (el) {
+      el.style.display = v === tabName ? 'block' : 'none';
+      if (v === tabName) el.classList.add('active');
+      else el.classList.remove('active');
+    }
+  });
+
+  if (tabName === 'calendar') {
+    renderLedgerCalendar();
+  } else if (tabName === 'input') {
+    renderEntryForm();
+  } else if (tabName === 'report') {
+    renderLedgerReports();
+  } else if (tabName === 'budget') {
+    renderLedgerBudget();
+  }
+}
+
+// 1. CALENDAR VIEW LOGIC
+function renderLedgerCalendar() {
+  const monthLabel = document.getElementById('calendar-month-label');
+  const rangeLabel = document.getElementById('calendar-range-label');
+  const daysGrid = document.getElementById('calendar-days-grid');
+  if (!daysGrid) return;
+
+  const y = ledgerState.currentYear;
+  const m = ledgerState.currentMonth;
+
+  const firstDay = new Date(y, m, 1);
+  const lastDay = new Date(y, m + 1, 0);
+  const totalDays = lastDay.getDate();
+  const startDayOfWeek = firstDay.getDay();
+
+  if (monthLabel) {
+    monthLabel.textContent = `${String(m + 1).padStart(2, '0')}/${y}`;
+  }
+  if (rangeLabel) {
+    rangeLabel.textContent = `(01/${String(m + 1).padStart(2, '0')} – ${totalDays}/${String(m + 1).padStart(2, '0')})`;
+  }
+
+  daysGrid.innerHTML = '';
+
+  const prevLastDay = new Date(y, m, 0).getDate();
+  for (let i = startDayOfWeek - 1; i >= 0; i--) {
+    const dayNum = prevLastDay - i;
+    const cell = document.createElement('div');
+    cell.className = 'cal-day-cell other-month';
+    cell.innerHTML = `<span class="day-num">${dayNum}</span>`;
+    daysGrid.appendChild(cell);
+  }
+
+  let monthlyIncome = 0;
+  let monthlyExpense = 0;
+  const todayStr = formatYMD(new Date());
+
+  for (let d = 1; d <= totalDays; d++) {
+    const dateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const dayOfWeek = new Date(y, m, d).getDay();
+
+    const dayTx = ledgerState.transactions.filter(t => t.date === dateStr);
+    let dayInc = 0;
+    let dayExp = 0;
+    dayTx.forEach(t => {
+      if (t.type === 'income') dayInc += t.amount;
+      else dayExp += t.amount;
+    });
+
+    monthlyIncome += dayInc;
+    monthlyExpense += dayExp;
+
+    const cell = document.createElement('div');
+    cell.className = 'cal-day-cell current-month';
+    if (dayOfWeek === 0) cell.classList.add('cn-col');
+    if (dayOfWeek === 6) cell.classList.add('t7-col');
+    if (dateStr === todayStr) cell.classList.add('is-today');
+    if (dateStr === ledgerState.selectedDateStr) cell.classList.add('is-selected');
+
+    cell.dataset.date = dateStr;
+
+    let badgeHtml = '';
+    if (dayInc > 0) {
+      badgeHtml += `<span class="day-badge badge-inc">+${formatCompactAmount(dayInc)}</span>`;
+    }
+    if (dayExp > 0) {
+      badgeHtml += `<span class="day-badge badge-exp">-${formatCompactAmount(dayExp)}</span>`;
+    }
+
+    cell.innerHTML = `
+      <span class="day-num">${d}</span>
+      <div class="day-amounts">${badgeHtml}</div>
+    `;
+
+    cell.addEventListener('click', () => {
+      ledgerState.selectedDateStr = dateStr;
+      document.querySelectorAll('.cal-day-cell').forEach(c => c.classList.remove('is-selected'));
+      cell.classList.add('is-selected');
+      renderSelectedDayTransactions();
+    });
+
+    daysGrid.appendChild(cell);
+  }
+
+  const remainingCells = 42 - (startDayOfWeek + totalDays);
+  const endPadding = remainingCells >= 7 ? remainingCells - 7 : remainingCells;
+  for (let nextD = 1; nextD <= endPadding; nextD++) {
+    const cell = document.createElement('div');
+    cell.className = 'cal-day-cell other-month';
+    cell.innerHTML = `<span class="day-num">${nextD}</span>`;
+    daysGrid.appendChild(cell);
+  }
+
+  const incEl = document.getElementById('cal-month-income');
+  const expEl = document.getElementById('cal-month-expense');
+  const balEl = document.getElementById('cal-month-balance');
+  const balance = monthlyIncome - monthlyExpense;
+
+  if (incEl) incEl.textContent = formatMoney(monthlyIncome);
+  if (expEl) expEl.textContent = formatMoney(monthlyExpense);
+  if (balEl) {
+    balEl.textContent = (balance >= 0 ? '+' : '') + formatMoney(balance);
+    balEl.className = 'summary-val font-bold ' + (balance >= 0 ? 'text-emerald' : 'text-rose');
+  }
+
+  renderSelectedDayTransactions();
+}
+
+function formatCompactAmount(amount) {
+  if (amount >= 1000000) {
+    const tr = Math.round((amount / 1000000) * 10) / 10;
+    return tr + 'Tr';
+  }
+  if (amount >= 1000) {
+    return Math.round(amount / 1000) + 'k';
+  }
+  return amount;
+}
+
+function renderSelectedDayTransactions() {
+  const container = document.getElementById('day-transactions-container');
+  const headingEl = document.getElementById('selected-day-heading');
+  const netEl = document.getElementById('selected-day-net');
+  if (!container) return;
+
+  const dateObj = parseYMD(ledgerState.selectedDateStr);
+  const dayName = getDayOfWeekName(dateObj);
+  const day = dateObj.getDate();
+  const month = dateObj.getMonth() + 1;
+  const year = dateObj.getFullYear();
+
+  if (headingEl) {
+    headingEl.textContent = `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year} (${dayName})`;
+  }
+
+  const txList = ledgerState.transactions.filter(t => t.date === ledgerState.selectedDateStr);
+  container.innerHTML = '';
+
+  let dayIncome = 0;
+  let dayExpense = 0;
+
+  if (txList.length === 0) {
+    container.innerHTML = `
+      <div class="day-empty-row">
+        <span>Không có khoản chi hoặc thu nào trong ngày này.</span>
+      </div>
+    `;
+    if (netEl) {
+      netEl.textContent = '0 ₫';
+      netEl.className = 'day-net-amount';
+    }
+    return;
+  }
+
+  txList.forEach(t => {
+    if (t.type === 'income') dayIncome += t.amount;
+    else dayExpense += t.amount;
+
+    const catList = t.type === 'income' ? KOMO_CATEGORIES.income : KOMO_CATEGORIES.expense;
+    const cat = catList.find(c => c.id === t.category) || { name: 'Khác', icon: '✨', color: '#64748b' };
+
+    const row = document.createElement('div');
+    row.className = 'komo-tx-item';
+    row.innerHTML = `
+      <div class="tx-left">
+        <div class="tx-icon-badge" style="background: ${cat.color}20; color: ${cat.color};">${cat.icon}</div>
+        <div class="tx-info">
+          <span class="tx-cat-name">${escapeHtml(cat.name)}</span>
+          <span class="tx-note">${escapeHtml(t.note || '')}</span>
+        </div>
+      </div>
+      <div class="tx-right">
+        <span class="tx-amount ${t.type === 'income' ? 'text-blue' : 'text-orange'}">
+          ${t.type === 'income' ? '+' : '-'}${formatMoney(t.amount)}
+        </span>
+        <button class="btn-delete-tx" data-id="${t.id}" title="Xóa giao dịch này">✕</button>
+      </div>
+    `;
+
+    row.querySelector('.btn-delete-tx').addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteTransaction(t.id);
+    });
+
+    container.appendChild(row);
+  });
+
+  const netDay = dayIncome - dayExpense;
+  if (netEl) {
+    netEl.textContent = (netDay >= 0 ? '+' : '') + formatMoney(netDay);
+    netEl.className = 'day-net-amount ' + (netDay >= 0 ? 'text-emerald' : 'text-orange');
+  }
+}
+
+function deleteTransaction(id) {
+  if (confirm('Bạn có muốn xóa khoản thu/chi này không?')) {
+    ledgerState.transactions = ledgerState.transactions.filter(t => t.id !== id);
+    saveLedgerToStorage();
+    renderLedgerCalendar();
+    showToast('Đã xóa giao dịch thành công!');
+  }
+}
+
+// 2. QUICK ENTRY VIEW LOGIC
+function renderEntryForm() {
+  const catGrid = document.getElementById('komo-cat-grid');
+  const typeButtons = document.querySelectorAll('.type-btn');
+  const amountLabel = document.getElementById('entry-amount-label');
+  const submitBtn = document.getElementById('btn-submit-transaction');
+  const dateInput = document.getElementById('entry-date-input');
+  const amountInput = document.getElementById('entry-amount-input');
+
+  if (dateInput) dateInput.value = ledgerState.selectedDateStr;
+  updateEntryDateDisplay();
+
+  typeButtons.forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.entryType === ledgerState.entryType);
+  });
+
+  if (amountLabel) {
+    amountLabel.textContent = ledgerState.entryType === 'income' ? 'Tiền thu' : 'Tiền chi';
+  }
+  if (submitBtn) {
+    submitBtn.textContent = ledgerState.entryType === 'income' ? 'Nhập khoản thu' : 'Nhập khoản chi';
+    submitBtn.className = 'btn-komo-submit ' + (ledgerState.entryType === 'income' ? 'income-mode' : 'expense-mode');
+  }
+
+  if (catGrid) {
+    catGrid.innerHTML = '';
+    const list = ledgerState.entryType === 'income' ? KOMO_CATEGORIES.income : KOMO_CATEGORIES.expense;
+    
+    if (!list.find(c => c.id === ledgerState.selectedCategory)) {
+      ledgerState.selectedCategory = list[0].id;
+    }
+
+    list.forEach(c => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'komo-cat-btn' + (c.id === ledgerState.selectedCategory ? ' active' : '');
+      btn.dataset.id = c.id;
+      btn.style.setProperty('--cat-theme-color', c.color);
+      btn.innerHTML = `
+        <span class="cat-icon">${c.icon}</span>
+        <span class="cat-label">${escapeHtml(c.name)}</span>
+      `;
+
+      btn.addEventListener('click', () => {
+        ledgerState.selectedCategory = c.id;
+        document.querySelectorAll('.komo-cat-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+
+      catGrid.appendChild(btn);
+    });
+  }
+
+  if (amountInput) {
+    setTimeout(() => amountInput.focus(), 150);
+  }
+}
+
+function updateEntryDateDisplay() {
+  const display = document.getElementById('entry-date-display');
+  if (!display) return;
+  const d = parseYMD(ledgerState.selectedDateStr);
+  const dayName = getDayOfWeekName(d);
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  display.textContent = `${day}/${month}/${year} (${dayName})`;
+}
+
+function submitNewTransaction() {
+  const amountInput = document.getElementById('entry-amount-input');
+  const noteInput = document.getElementById('entry-note-input');
+  const amount = parseMoneyInput(amountInput ? amountInput.value : '0');
+  const note = noteInput ? noteInput.value.trim() : '';
+
+  if (amount <= 0) {
+    alert('Vui lòng nhập số tiền hợp lệ lớn hơn 0!');
+    if (amountInput) amountInput.focus();
+    return;
+  }
+
+  const newTx = {
+    id: 'tx_' + Date.now(),
+    type: ledgerState.entryType,
+    amount: amount,
+    category: ledgerState.selectedCategory,
+    note: note,
+    date: ledgerState.selectedDateStr
+  };
+
+  ledgerState.transactions.push(newTx);
+  saveLedgerToStorage();
+
+  if (amountInput) amountInput.value = '';
+  if (noteInput) noteInput.value = '';
+
+  showToast(`Đã thêm ${ledgerState.entryType === 'income' ? 'khoản thu' : 'khoản chi'} ${formatMoney(amount)} thành công!`);
+  switchLedgerSubTab('calendar');
+}
+
+// 3. REPORTS VIEW LOGIC
+function renderLedgerReports() {
+  const periodLabel = document.getElementById('report-period-label');
+  const totalExpEl = document.getElementById('report-total-expense');
+  const totalIncEl = document.getElementById('report-total-income');
+  const totalBalEl = document.getElementById('report-total-balance');
+  const donutSvg = document.getElementById('komo-report-donut');
+  const donutCenter = document.getElementById('donut-center-amount');
+  const donutTypeLabel = document.getElementById('donut-type-label');
+  const rankingList = document.getElementById('report-ranking-container');
+  const rankingTitle = document.getElementById('ranking-title');
+
+  const y = ledgerState.currentYear;
+  const m = ledgerState.currentMonth;
+
+  if (periodLabel) {
+    if (ledgerState.reportPeriod === 'monthly') {
+      periodLabel.textContent = `${String(m + 1).padStart(2, '0')}/${y}`;
+    } else {
+      periodLabel.textContent = `Năm ${y}`;
+    }
+  }
+
+  let filteredTx = ledgerState.transactions.filter(t => {
+    const txDate = parseYMD(t.date);
+    if (ledgerState.reportPeriod === 'monthly') {
+      return txDate.getFullYear() === y && txDate.getMonth() === m;
+    } else {
+      return txDate.getFullYear() === y;
+    }
+  });
+
+  let totalExpense = 0;
+  let totalIncome = 0;
+  filteredTx.forEach(t => {
+    if (t.type === 'income') totalIncome += t.amount;
+    else totalExpense += t.amount;
+  });
+
+  const netBalance = totalIncome - totalExpense;
+
+  if (totalExpEl) totalExpEl.textContent = '-' + formatMoney(totalExpense);
+  if (totalIncEl) totalIncEl.textContent = '+' + formatMoney(totalIncome);
+  if (totalBalEl) {
+    totalBalEl.textContent = (netBalance >= 0 ? '+' : '') + formatMoney(netBalance);
+    totalBalEl.className = 's-val font-bold ' + (netBalance >= 0 ? 'text-emerald' : 'text-orange');
+  }
+
+  const isExp = ledgerState.reportTab === 'expense';
+  const targetTx = filteredTx.filter(t => t.type === ledgerState.reportTab);
+  const targetTotal = isExp ? totalExpense : totalIncome;
+
+  if (donutTypeLabel) donutTypeLabel.textContent = isExp ? 'Tổng chi' : 'Tổng thu';
+  if (donutCenter) donutCenter.textContent = formatMoney(targetTotal);
+  if (rankingTitle) rankingTitle.textContent = isExp ? 'Xếp hạng các khoản chi' : 'Xếp hạng nguồn thu nhập';
+
+  const catMap = {};
+  targetTx.forEach(t => {
+    catMap[t.category] = (catMap[t.category] || 0) + t.amount;
+  });
+
+  const categoriesDef = isExp ? KOMO_CATEGORIES.expense : KOMO_CATEGORIES.income;
+  const ranking = Object.keys(catMap).map(catId => {
+    const def = categoriesDef.find(c => c.id === catId) || { name: 'Khác', icon: '✨', color: '#64748b' };
+    const amount = catMap[catId];
+    const pct = targetTotal > 0 ? Math.round((amount / targetTotal) * 1000) / 10 : 0;
+    return { id: catId, name: def.name, icon: def.icon, color: def.color, amount, pct };
+  });
+
+  ranking.sort((a, b) => b.amount - a.amount);
+
+  if (donutSvg) {
+    donutSvg.innerHTML = '';
+    const radius = 75;
+    const circumference = 2 * Math.PI * radius;
+    let accumulated = 0;
+
+    const bgCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    bgCircle.setAttribute('cx', '110');
+    bgCircle.setAttribute('cy', '110');
+    bgCircle.setAttribute('r', radius.toString());
+    bgCircle.setAttribute('fill', 'none');
+    bgCircle.setAttribute('stroke', 'rgba(255, 255, 255, 0.05)');
+    bgCircle.setAttribute('stroke-width', '24');
+    donutSvg.appendChild(bgCircle);
+
+    if (targetTotal > 0) {
+      ranking.forEach(r => {
+        const strokeLength = (r.pct / 100) * circumference;
+        const strokeOffset = -((accumulated / 100) * circumference);
+
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', '110');
+        circle.setAttribute('cy', '110');
+        circle.setAttribute('r', radius.toString());
+        circle.setAttribute('fill', 'none');
+        circle.setAttribute('stroke', r.color);
+        circle.setAttribute('stroke-width', '24');
+        circle.setAttribute('stroke-dasharray', `${strokeLength} ${circumference}`);
+        circle.setAttribute('stroke-dashoffset', strokeOffset.toString());
+
+        const titleTag = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+        titleTag.textContent = `${r.name}: ${formatMoney(r.amount)} (${r.pct}%)`;
+        circle.appendChild(titleTag);
+
+        donutSvg.appendChild(circle);
+        accumulated += r.pct;
+      });
+    }
+  }
+
+  if (rankingList) {
+    rankingList.innerHTML = '';
+    if (ranking.length === 0) {
+      rankingList.innerHTML = `<div class="empty-report-row">Chưa có giao dịch trong kỳ này</div>`;
+      return;
+    }
+
+    ranking.forEach(r => {
+      const row = document.createElement('div');
+      row.className = 'komo-ranking-item';
+      row.innerHTML = `
+        <div class="rk-top">
+          <div class="rk-cat-left">
+            <span class="rk-icon" style="background: ${r.color}20; color: ${r.color};">${r.icon}</span>
+            <span class="rk-name">${escapeHtml(r.name)}</span>
+          </div>
+          <div class="rk-cat-right">
+            <span class="rk-amount">${formatMoney(r.amount)}</span>
+            <span class="rk-pct">${r.pct}%</span>
+          </div>
+        </div>
+        <div class="rk-bar-wrap">
+          <div class="rk-bar-fill" style="width: ${r.pct}%; background-color: ${r.color};"></div>
+        </div>
+      `;
+      rankingList.appendChild(row);
+    });
+  }
+}
+
+// 4. BUDGET LIMITS LOGIC
+function renderLedgerBudget() {
+  const container = document.getElementById('category-budgets-container');
+  const tbLimit = document.getElementById('tb-limit-val');
+  const tbSpent = document.getElementById('tb-spent-val');
+  const tbRemaining = document.getElementById('tb-remaining-val');
+  const tbBar = document.getElementById('tb-progress-bar');
+  const tbPct = document.getElementById('tb-pct-text');
+  const tbTip = document.getElementById('tb-status-tip');
+
+  if (!container) return;
+
+  const y = ledgerState.currentYear;
+  const m = ledgerState.currentMonth;
+
+  const monthTx = ledgerState.transactions.filter(t => {
+    const d = parseYMD(t.date);
+    return t.type === 'expense' && d.getFullYear() === y && d.getMonth() === m;
+  });
+
+  const spentMap = {};
+  let totalSpent = 0;
+  monthTx.forEach(t => {
+    spentMap[t.category] = (spentMap[t.category] || 0) + t.amount;
+    totalSpent += t.amount;
+  });
+
+  let totalLimit = 0;
+  Object.values(ledgerState.budgetLimits).forEach(v => totalLimit += v);
+
+  const totalRemaining = totalLimit - totalSpent;
+  const totalPct = totalLimit > 0 ? Math.min(100, Math.round((totalSpent / totalLimit) * 100)) : 0;
+
+  if (tbLimit) tbLimit.textContent = formatMoney(totalLimit);
+  if (tbSpent) tbSpent.textContent = formatMoney(totalSpent);
+  if (tbRemaining) {
+    tbRemaining.textContent = formatMoney(Math.abs(totalRemaining));
+    tbRemaining.className = 'tb-remaining-amount ' + (totalRemaining >= 0 ? 'text-emerald' : 'text-rose');
+  }
+
+  if (tbBar) {
+    tbBar.style.width = `${totalPct}%`;
+    tbBar.className = 'tb-progress-bar ' + (totalPct >= 100 ? 'bg-danger' : (totalPct >= 80 ? 'bg-warning' : 'bg-primary'));
+  }
+  if (tbPct) tbPct.textContent = `Đã dùng ${totalPct}%`;
+  if (tbTip) {
+    if (totalRemaining >= 0) {
+      tbTip.textContent = 'An toàn trong hạn mức';
+      tbTip.className = 'text-emerald';
+    } else {
+      tbTip.textContent = 'Đã vượt hạn mức ngân sách!';
+      tbTip.className = 'text-rose font-bold';
+    }
+  }
+
+  container.innerHTML = '';
+
+  KOMO_CATEGORIES.expense.forEach(cat => {
+    const limit = ledgerState.budgetLimits[cat.id] || 0;
+    if (limit <= 0) return;
+
+    const spent = spentMap[cat.id] || 0;
+    const remaining = limit - spent;
+    const pct = Math.min(100, Math.round((spent / limit) * 100));
+
+    const card = document.createElement('div');
+    card.className = 'budget-cat-card';
+    card.innerHTML = `
+      <div class="bc-top">
+        <div class="bc-left">
+          <span class="bc-icon">${cat.icon}</span>
+          <span class="bc-name">${escapeHtml(cat.name)}</span>
+        </div>
+        <div class="bc-right">
+          <span class="bc-remaining-label">${remaining >= 0 ? 'Còn lại:' : 'Vượt mức:'}</span>
+          <span class="bc-remaining-val ${remaining >= 0 ? 'text-emerald' : 'text-rose'}">${formatMoney(Math.abs(remaining))}</span>
+          <span class="bc-pct-tag">${pct}%</span>
+        </div>
+      </div>
+
+      <div class="bc-progress-wrap">
+        <div class="bc-progress-bar" style="width: ${pct}%; background-color: ${pct >= 100 ? '#ef4444' : (pct >= 80 ? '#f59e0b' : cat.color)};"></div>
+      </div>
+
+      <div class="bc-bottom-sub">
+        <span>Ngân sách: ${formatMoney(limit)}</span>
+        <span class="text-muted">Đã chi: ${formatMoney(spent)}</span>
+      </div>
+    `;
+
+    container.appendChild(card);
+  });
+}
+
+function syncBudgetFromSmartBudget() {
+  let syncedCount = 0;
+  state.categories.forEach(cat => {
+    const money = Math.round((state.income * cat.percent) / 100);
+    const lower = cat.name.toLowerCase();
+
+    if (/ăn|uống|food/i.test(lower)) {
+      ledgerState.budgetLimits.food = money;
+      syncedCount++;
+    } else if (/nhà|trọ|thuê/i.test(lower)) {
+      ledgerState.budgetLimits.house = money;
+      syncedCount++;
+    } else if (/hàng ngày|tạp hóa|sinh hoạt/i.test(lower)) {
+      ledgerState.budgetLimits.daily = money;
+      syncedCount++;
+    } else if (/giao lưu|cafe|vui chơi|play/i.test(lower)) {
+      ledgerState.budgetLimits.social = money;
+      syncedCount++;
+    } else if (/quần áo|mua sắm/i.test(lower)) {
+      ledgerState.budgetLimits.clothes = money;
+      syncedCount++;
+    } else if (/điện|nước|hóa đơn/i.test(lower)) {
+      ledgerState.budgetLimits.utilities = money;
+      syncedCount++;
+    }
+  });
+
+  saveLedgerToStorage();
+  renderLedgerBudget();
+  showToast(`Đã đồng bộ ${syncedCount} hạn mức từ SmartBudget!`);
+}
+
+function initKomorebiLedger() {
+  loadLedgerFromStorage();
+
+  document.querySelectorAll('.komo-nav-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      switchLedgerSubTab(btn.dataset.subtab);
+    });
+  });
+
+  const btnPrevMonth = document.getElementById('btn-prev-month');
+  const btnNextMonth = document.getElementById('btn-next-month');
+  const btnTodayMonth = document.getElementById('btn-today-month');
+
+  if (btnPrevMonth) {
+    btnPrevMonth.addEventListener('click', () => {
+      ledgerState.currentMonth--;
+      if (ledgerState.currentMonth < 0) {
+        ledgerState.currentMonth = 11;
+        ledgerState.currentYear--;
+      }
+      renderLedgerCalendar();
+    });
+  }
+
+  if (btnNextMonth) {
+    btnNextMonth.addEventListener('click', () => {
+      ledgerState.currentMonth++;
+      if (ledgerState.currentMonth > 11) {
+        ledgerState.currentMonth = 0;
+        ledgerState.currentYear++;
+      }
+      renderLedgerCalendar();
+    });
+  }
+
+  if (btnTodayMonth) {
+    btnTodayMonth.addEventListener('click', () => {
+      const now = new Date();
+      ledgerState.currentMonth = now.getMonth();
+      ledgerState.currentYear = now.getFullYear();
+      ledgerState.selectedDateStr = formatYMD(now);
+      renderLedgerCalendar();
+    });
+  }
+
+  const btnQuickAddForDay = document.getElementById('btn-quick-add-for-day');
+  if (btnQuickAddForDay) {
+    btnQuickAddForDay.addEventListener('click', () => {
+      switchLedgerSubTab('input');
+    });
+  }
+
+  document.querySelectorAll('.type-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      ledgerState.entryType = btn.dataset.entryType;
+      renderEntryForm();
+    });
+  });
+
+  const btnEntryPrevDay = document.getElementById('btn-entry-prev-day');
+  const btnEntryNextDay = document.getElementById('btn-entry-next-day');
+  const entryDateInput = document.getElementById('entry-date-input');
+
+  if (btnEntryPrevDay) {
+    btnEntryPrevDay.addEventListener('click', () => {
+      const d = parseYMD(ledgerState.selectedDateStr);
+      d.setDate(d.getDate() - 1);
+      ledgerState.selectedDateStr = formatYMD(d);
+      if (entryDateInput) entryDateInput.value = ledgerState.selectedDateStr;
+      updateEntryDateDisplay();
+    });
+  }
+
+  if (btnEntryNextDay) {
+    btnEntryNextDay.addEventListener('click', () => {
+      const d = parseYMD(ledgerState.selectedDateStr);
+      d.setDate(d.getDate() + 1);
+      ledgerState.selectedDateStr = formatYMD(d);
+      if (entryDateInput) entryDateInput.value = ledgerState.selectedDateStr;
+      updateEntryDateDisplay();
+    });
+  }
+
+  if (entryDateInput) {
+    entryDateInput.addEventListener('change', (e) => {
+      if (e.target.value) {
+        ledgerState.selectedDateStr = e.target.value;
+        updateEntryDateDisplay();
+      }
+    });
+  }
+
+  const entryAmountInput = document.getElementById('entry-amount-input');
+  if (entryAmountInput) {
+    entryAmountInput.addEventListener('input', (e) => {
+      const raw = e.target.value.replace(/\D/g, '');
+      const num = parseInt(raw, 10) || 0;
+      e.target.value = num === 0 ? '' : formatNumberForInput(num, suiteState.currency);
+    });
+  }
+
+  const btnClearEntryAmount = document.getElementById('btn-clear-entry-amount');
+  if (btnClearEntryAmount) {
+    btnClearEntryAmount.addEventListener('click', () => {
+      if (entryAmountInput) {
+        entryAmountInput.value = '';
+        entryAmountInput.focus();
+      }
+    });
+  }
+
+  const btnSubmitTx = document.getElementById('btn-submit-transaction');
+  if (btnSubmitTx) {
+    btnSubmitTx.addEventListener('click', submitNewTransaction);
+  }
+
+  document.querySelectorAll('.period-pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.period-pill').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      ledgerState.reportPeriod = btn.dataset.reportPeriod;
+      renderLedgerReports();
+    });
+  });
+
+  document.querySelectorAll('.rpt-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.rpt-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      ledgerState.reportTab = btn.dataset.reportTab;
+      renderLedgerReports();
+    });
+  });
+
+  const btnReportPrev = document.getElementById('btn-report-prev');
+  const btnReportNext = document.getElementById('btn-report-next');
+  if (btnReportPrev) {
+    btnReportPrev.addEventListener('click', () => {
+      if (ledgerState.reportPeriod === 'monthly') {
+        ledgerState.currentMonth--;
+        if (ledgerState.currentMonth < 0) {
+          ledgerState.currentMonth = 11;
+          ledgerState.currentYear--;
+        }
+      } else {
+        ledgerState.currentYear--;
+      }
+      renderLedgerReports();
+    });
+  }
+
+  if (btnReportNext) {
+    btnReportNext.addEventListener('click', () => {
+      if (ledgerState.reportPeriod === 'monthly') {
+        ledgerState.currentMonth++;
+        if (ledgerState.currentMonth > 11) {
+          ledgerState.currentMonth = 0;
+          ledgerState.currentYear++;
+        }
+      } else {
+        ledgerState.currentYear++;
+      }
+      renderLedgerReports();
+    });
+  }
+
+  const btnSyncLimits = document.getElementById('btn-sync-budget-limits');
+  if (btnSyncLimits) {
+    btnSyncLimits.addEventListener('click', syncBudgetFromSmartBudget);
+  }
+}
+
 // Initial Boot
 window.addEventListener('DOMContentLoaded', () => {
   loadFromStorage();
@@ -1819,10 +2706,11 @@ window.addEventListener('DOMContentLoaded', () => {
   render();
   renderCompound();
   initAppleNotes();
+  initKomorebiLedger();
 
   // Load last active module
   const savedMod = localStorage.getItem(AIO_STORAGE_KEY_MODULE);
-  if (savedMod && ['budget', 'compound', 'hub', 'notes'].includes(savedMod)) {
+  if (savedMod && ['budget', 'compound', 'hub', 'notes', 'ledger'].includes(savedMod)) {
     switchModule(savedMod);
   }
 });
