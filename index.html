@@ -23,8 +23,13 @@
       document.documentElement.setAttribute('data-theme', savedTheme);
       const savedMod = localStorage.getItem('aio_active_module') || 'budget';
       document.documentElement.setAttribute('data-active-tab', savedMod);
+      const savedUser = localStorage.getItem('aio_active_user_profile') || 'anh';
+      document.documentElement.setAttribute('data-user-profile', savedUser);
       document.addEventListener('DOMContentLoaded', () => {
-        if (document.body) document.body.setAttribute('data-tab', savedMod);
+        if (document.body) {
+          document.body.setAttribute('data-tab', savedMod);
+          document.body.setAttribute('data-user-profile', savedUser);
+        }
       });
     })();
   </script>
@@ -43,6 +48,21 @@
             <h1 class="logo-title">All In One <span class="badge-tag">SUITE</span></h1>
             <p class="logo-subtitle">Hệ sinh thái công cụ & dự án đa năng</p>
           </div>
+        </div>
+
+        <!-- Couple Profile Switcher: Anh ❤️ Em -->
+        <div class="couple-profile-switcher" id="couple-profile-switcher" role="tablist" aria-label="Chọn tài khoản Anh hoặc Em">
+          <button type="button" class="profile-tab-btn active" data-user="anh" id="tab-profile-anh" role="tab" aria-selected="true" title="Không gian quản lý của Anh">
+            <span class="profile-avatar">👨</span>
+            <span class="profile-name">Anh</span>
+          </button>
+          <div class="profile-heart-separator" id="btn-toggle-heart" aria-hidden="true" title="Chuyển đổi Anh ❤️ Em">
+            <span class="heart-icon">❤️</span>
+          </div>
+          <button type="button" class="profile-tab-btn" data-user="em" id="tab-profile-em" role="tab" aria-selected="false" title="Không gian quản lý của Em">
+            <span class="profile-avatar">👩</span>
+            <span class="profile-name">Em</span>
+          </button>
         </div>
 
         <div class="header-actions">
@@ -151,8 +171,9 @@
                 </span>
               </div>
               <div class="status-actions">
-                <button id="btn-auto-fill-remaining" class="btn-mini btn-action" style="display: none;">
-                  ⚡ Phân bổ nốt <span id="remaining-percent-label">0%</span>
+                <button id="btn-auto-fill-remaining" class="btn-mini btn-action" style="display: none;" title="Tự động phân bổ nốt phần trăm còn thiếu">
+                  <span>⚡ Phân bổ nốt</span>
+                  <span id="remaining-percent-label">0%</span>
                 </button>
                 <button id="btn-normalize-100" class="btn-mini" title="Tự động chuẩn hóa tỷ lệ tất cả các mục về vừa khớp 100%">
                   ⚖ Cân bằng về 100%

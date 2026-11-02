@@ -10,10 +10,18 @@
 // GLOBAL SUITE STATE & NAVIGATION ROUTER
 // =============================================================================
 
+const AIO_STORAGE_KEY_USER_PROFILE = 'aio_active_user_profile';
+let currentUserProfile = localStorage.getItem(AIO_STORAGE_KEY_USER_PROFILE) || 'anh';
+
 const suiteState = {
   activeModule: 'budget', // 'budget', 'compound', 'hub'
-  currency: 'VND'
+  currency: 'VND',
+  activeUser: currentUserProfile
 };
+
+function getUserStorageKey(baseKey) {
+  return `${baseKey}_${currentUserProfile}`;
+}
 
 const AIO_STORAGE_KEY_MODULE = 'aio_active_module';
 
@@ -57,6 +65,102 @@ function switchModule(moduleName) {
   }
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// =============================================================================
+// COUPLE PROFILE SYSTEM (Anh ❤️ Em)
+// =============================================================================
+
+function updateCurrencyDisplay() {
+  if (typeof currencyBtns !== 'undefined' && currencyBtns) {
+    currencyBtns.forEach(b => {
+      b.classList.toggle('active', b.dataset.currency === suiteState.currency);
+    });
+  }
+  if (typeof currencySymbol !== 'undefined' && currencySymbol) {
+    currencySymbol.textContent = suiteState.currency === 'USD' ? '$' : '₫';
+  }
+}
+
+function switchUserProfile(newProfile) {
+  if (currentUserProfile === newProfile) return;
+
+  // 1. Save all existing profile data
+  saveToStorage();
+  saveNotesToStorage();
+  saveLedgerToStorage();
+
+  // 2. Change active profile
+  currentUserProfile = newProfile;
+  suiteState.activeUser = newProfile;
+  localStorage.setItem(AIO_STORAGE_KEY_USER_PROFILE, newProfile);
+  document.body.setAttribute('data-user-profile', newProfile);
+  document.documentElement.setAttribute('data-user-profile', newProfile);
+
+  // 3. Update tabs UI
+  const anhBtn = document.getElementById('tab-profile-anh');
+  const emBtn = document.getElementById('tab-profile-em');
+  if (anhBtn && emBtn) {
+    anhBtn.classList.toggle('active', newProfile === 'anh');
+    emBtn.classList.toggle('active', newProfile === 'em');
+    anhBtn.setAttribute('aria-selected', newProfile === 'anh');
+    emBtn.setAttribute('aria-selected', newProfile === 'em');
+  }
+
+  // 4. Load target profile data
+  loadFromStorage();
+  loadNotesFromStorage();
+  loadLedgerFromStorage();
+
+  // 5. Re-render SmartBudget
+  if (incomeInput) {
+    incomeInput.value = state.income === 0 ? '' : formatNumberForInput(state.income, suiteState.currency);
+  }
+  updateCurrencyDisplay();
+  if (typeof renderPresetChips === 'function') renderPresetChips();
+  render();
+
+  // 6. Re-render Notes
+  if (typeof renderNotesApp === 'function') {
+    renderNotesApp();
+  }
+
+  // 7. Re-render Ledger
+  if (typeof renderLedgerApp === 'function') {
+    renderLedgerApp();
+  }
+
+  // 8. Re-render Compound
+  if (typeof renderCompound === 'function') {
+    renderCompound();
+  }
+
+  showToast(`Đã chuyển sang không gian của ${newProfile === 'anh' ? 'Anh 👨' : 'Em 👩'}!`);
+}
+
+function initCoupleProfileSwitcher() {
+  const anhBtn = document.getElementById('tab-profile-anh');
+  const emBtn = document.getElementById('tab-profile-em');
+  const toggleHeartBtn = document.getElementById('btn-toggle-heart');
+
+  if (anhBtn && emBtn) {
+    anhBtn.classList.toggle('active', currentUserProfile === 'anh');
+    emBtn.classList.toggle('active', currentUserProfile === 'em');
+    anhBtn.setAttribute('aria-selected', currentUserProfile === 'anh');
+    emBtn.setAttribute('aria-selected', currentUserProfile === 'em');
+
+    anhBtn.addEventListener('click', () => switchUserProfile('anh'));
+    emBtn.addEventListener('click', () => switchUserProfile('em'));
+  }
+
+  if (toggleHeartBtn) {
+    toggleHeartBtn.addEventListener('click', () => {
+      switchUserProfile(currentUserProfile === 'anh' ? 'em' : 'anh');
+    });
+  }
+
+  document.body.setAttribute('data-user-profile', currentUserProfile);
+  document.documentElement.setAttribute('data-user-profile', currentUserProfile);
 }
 
 // =============================================================================
@@ -163,7 +267,8 @@ const STORAGE_KEY = 'smartbudget_v1_data';
 
 function saveToStorage() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    const key = getUserStorageKey(STORAGE_KEY);
+    localStorage.setItem(key, JSON.stringify({
       income: state.income,
       currency: suiteState.currency,
       activePreset: state.activePreset,
@@ -177,7 +282,14 @@ function saveToStorage() {
 
 function loadFromStorage() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const key = getUserStorageKey(STORAGE_KEY);
+    let raw = localStorage.getItem(key);
+    // Backward compatibility for Anh profile
+    if (!raw && currentUserProfile === 'anh') {
+      raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) localStorage.setItem(key, raw);
+    }
+
     if (raw) {
       const data = JSON.parse(raw);
       if (typeof data.income === 'number') state.income = data.income;
@@ -186,6 +298,27 @@ function loadFromStorage() {
       if (data.sortBy) state.sortBy = data.sortBy;
       if (Array.isArray(data.categories) && data.categories.length > 0) {
         state.categories = data.categories;
+      }
+    } else {
+      // Default initialization based on active user
+      if (currentUserProfile === 'em') {
+        state.income = 18000000;
+        suiteState.currency = 'VND';
+        state.activePreset = '50-30-20';
+        state.sortBy = 'default';
+        state.categories = [
+          { id: 'cat_em_1', name: 'Nhu cầu thiết yếu', percent: 50, color: '#3b82f6', icon: '🏠', note: 'Tiền phòng, ăn uống, điện nước sinh hoạt' },
+          { id: 'cat_em_2', name: 'Mua sắm & Làm đẹp', percent: 30, color: '#ec4899', icon: '💄', note: 'Mỹ phẩm skincare, quần áo, cafe bạn bè' },
+          { id: 'cat_em_3', name: 'Tiết kiệm & Tích lũy', percent: 20, color: '#10b981', icon: '💰', note: 'Quỹ dự phòng cá nhân & tương lai' }
+        ];
+        saveToStorage();
+      } else {
+        state.income = 20000000;
+        suiteState.currency = 'VND';
+        state.activePreset = '50-30-20';
+        state.sortBy = 'default';
+        state.categories = JSON.parse(JSON.stringify(PRESETS['50-30-20']));
+        saveToStorage();
       }
     }
   } catch (e) {
@@ -726,8 +859,9 @@ function loadPreset(presetKey) {
 
 function copyBreakdownToClipboard() {
   const totalPercent = getTotalPercent();
+  const userTag = currentUserProfile === 'anh' ? 'ANH 👨' : 'EM 👩';
   const lines = [
-    `=== BẢNG PHÂN BỔ CHI TIÊU THÔNG MINH (Quy tắc 100%) ===`,
+    `=== BẢNG PHÂN BỔ CHI TIÊU THÔNG MINH (${userTag}) ===`,
     `Tổng thu nhập: ${formatMoney(state.income)}`,
     `Tổng tỷ lệ: ${totalPercent}%`,
     `----------------------------------------`
@@ -1082,15 +1216,29 @@ function setupEventListeners() {
   if (btnExportText) btnExportText.addEventListener('click', copyBreakdownToClipboard);
   if (btnReset) {
     btnReset.addEventListener('click', () => {
-      if (confirm('Bạn có muốn đặt lại toàn bộ cài đặt về công thức 50/30/20 ban đầu không?')) {
-        localStorage.removeItem(STORAGE_KEY);
-        state.income = 20000000;
-        suiteState.currency = 'VND';
-        state.activePreset = '50-30-20';
-        state.sortBy = 'default';
-        state.categories = JSON.parse(JSON.stringify(PRESETS['50-30-20']));
+      const userLabel = currentUserProfile === 'anh' ? 'của Anh' : 'của Em';
+      if (confirm(`Bạn có muốn đặt lại toàn bộ cài đặt phân bổ ${userLabel} về mặc định không?`)) {
+        localStorage.removeItem(getUserStorageKey(STORAGE_KEY));
+        if (currentUserProfile === 'em') {
+          state.income = 18000000;
+          suiteState.currency = 'VND';
+          state.activePreset = '50-30-20';
+          state.sortBy = 'default';
+          state.categories = [
+            { id: 'cat_em_1', name: 'Nhu cầu thiết yếu', percent: 50, color: '#3b82f6', icon: '🏠', note: 'Tiền phòng, ăn uống, điện nước sinh hoạt' },
+            { id: 'cat_em_2', name: 'Mua sắm & Làm đẹp', percent: 30, color: '#ec4899', icon: '💄', note: 'Mỹ phẩm skincare, quần áo, cafe bạn bè' },
+            { id: 'cat_em_3', name: 'Tiết kiệm & Tích lũy', percent: 20, color: '#10b981', icon: '💰', note: 'Quỹ dự phòng cá nhân & tương lai' }
+          ];
+        } else {
+          state.income = 20000000;
+          suiteState.currency = 'VND';
+          state.activePreset = '50-30-20';
+          state.sortBy = 'default';
+          state.categories = JSON.parse(JSON.stringify(PRESETS['50-30-20']));
+        }
+        saveToStorage();
         render();
-        showToast('Đã đặt lại dữ liệu thành công!');
+        showToast(`Đã đặt lại dữ liệu ${userLabel} thành công!`);
       }
     });
   }
@@ -1240,6 +1388,31 @@ const DEFAULT_STARTER_NOTES = [
   }
 ];
 
+const DEFAULT_STARTER_NOTES_EM = [
+  {
+    id: 'note_em_1',
+    folder: 'personal',
+    title: 'Ghi chú của Em ❤️',
+    content: `<div>Chào mừng Em đến với không gian cá nhân của Em!</div>
+<div class="apple-checklist-item checked"><span class="apple-checkbox" contenteditable="false">✓</span><span class="checklist-text">Cân bằng ngân sách và theo dõi chi tiêu cá nhân</span></div>
+<div class="apple-checklist-item checked"><span class="apple-checkbox" contenteditable="false">✓</span><span class="checklist-text">Tiết kiệm quỹ tương lai cùng Anh</span></div>
+<div class="apple-checklist-item"><span class="apple-checkbox" contenteditable="false"></span><span class="checklist-text">Tự thưởng cho bản thân mỗi khi hoàn thành mục tiêu</span></div>`,
+    isPinned: true,
+    updatedAt: Date.now() - 1000 * 60 * 20
+  },
+  {
+    id: 'note_em_2',
+    folder: 'budget',
+    title: 'Wishlist & Những điều xinh xắn ✨',
+    content: `<div>Danh sách những món đồ và hoạt động muốn trải nghiệm:</div>
+<div>• 💄 Bộ mỹ phẩm dưỡng da yêu thích</div>
+<div>• 👗 Váy hoa đi cafe hẹn hò cuối tuần</div>
+<div>• ✈️ Kế hoạch du lịch cùng Anh cuối năm</div>`,
+    isPinned: false,
+    updatedAt: Date.now() - 1000 * 60 * 60 * 2
+  }
+];
+
 const notesState = {
   notes: [],
   activeNoteId: null,
@@ -1249,30 +1422,43 @@ const notesState = {
 
 function loadNotesFromStorage() {
   try {
-    const raw = localStorage.getItem(NOTES_STORAGE_KEY);
+    const key = getUserStorageKey(NOTES_STORAGE_KEY);
+    let raw = localStorage.getItem(key);
+    if (!raw && currentUserProfile === 'anh') {
+      raw = localStorage.getItem(NOTES_STORAGE_KEY);
+      if (raw) localStorage.setItem(key, raw);
+    }
+
+    const defaultNotes = currentUserProfile === 'em' ? DEFAULT_STARTER_NOTES_EM : DEFAULT_STARTER_NOTES;
+
     if (raw) {
       const data = JSON.parse(raw);
       if (Array.isArray(data) && data.length > 0) {
         notesState.notes = data;
       } else {
-        notesState.notes = JSON.parse(JSON.stringify(DEFAULT_STARTER_NOTES));
+        notesState.notes = JSON.parse(JSON.stringify(defaultNotes));
       }
     } else {
-      notesState.notes = JSON.parse(JSON.stringify(DEFAULT_STARTER_NOTES));
+      notesState.notes = JSON.parse(JSON.stringify(defaultNotes));
+      saveNotesToStorage();
     }
   } catch (e) {
     console.warn('Failed to load notes:', e);
-    notesState.notes = JSON.parse(JSON.stringify(DEFAULT_STARTER_NOTES));
+    const defaultNotes = currentUserProfile === 'em' ? DEFAULT_STARTER_NOTES_EM : DEFAULT_STARTER_NOTES;
+    notesState.notes = JSON.parse(JSON.stringify(defaultNotes));
   }
 
-  if (notesState.notes.length > 0 && !notesState.activeNoteId) {
+  if (notesState.notes.length > 0) {
     notesState.activeNoteId = notesState.notes[0].id;
+  } else {
+    notesState.activeNoteId = null;
   }
 }
 
 function saveNotesToStorage() {
   try {
-    localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(notesState.notes));
+    const key = getUserStorageKey(NOTES_STORAGE_KEY);
+    localStorage.setItem(key, JSON.stringify(notesState.notes));
   } catch (e) {
     console.warn('Failed to save notes:', e);
   }
@@ -1890,28 +2076,50 @@ function getDayOfWeekName(d) {
 
 function loadLedgerFromStorage() {
   try {
-    const raw = localStorage.getItem(LEDGER_STORAGE_KEY);
+    const txKey = getUserStorageKey(LEDGER_STORAGE_KEY);
+    const bgKey = getUserStorageKey(LEDGER_BUDGET_KEY);
+    let raw = localStorage.getItem(txKey);
+    if (!raw && currentUserProfile === 'anh') {
+      raw = localStorage.getItem(LEDGER_STORAGE_KEY);
+      if (raw) localStorage.setItem(txKey, raw);
+    }
+
     if (raw) {
       const data = JSON.parse(raw);
       if (Array.isArray(data)) ledgerState.transactions = data;
     } else {
       const y = ledgerState.currentYear;
       const m = String(ledgerState.currentMonth + 1).padStart(2, '0');
-      ledgerState.transactions = [
-        { id: 'tx_1', type: 'income', amount: 15000000, category: 'salary', note: 'Nhận lương tháng', date: `${y}-${m}-01` },
-        { id: 'tx_2', type: 'expense', amount: 4000000, category: 'house', note: 'Tiền thuê nhà & dịch vụ', date: `${y}-${m}-01` },
-        { id: 'tx_3', type: 'expense', amount: 60000, category: 'food', note: 'Ăn trưa cơm văn phòng', date: `${y}-${m}-02` },
-        { id: 'tx_4', type: 'expense', amount: 45000, category: 'transport', note: 'Grab di chuyển', date: `${y}-${m}-02` },
-        { id: 'tx_5', type: 'expense', amount: 350000, category: 'daily', note: 'Tạp hóa siêu thị mini', date: `${y}-${m}-05` },
-        { id: 'tx_6', type: 'expense', amount: 220000, category: 'cosmetics', note: 'Mỹ phẩm dưỡng da', date: `${y}-${m}-08` },
-        { id: 'tx_7', type: 'expense', amount: 150000, category: 'telecom', note: 'Nạp cước điện thoại 4G', date: `${y}-${m}-10` },
-        { id: 'tx_8', type: 'expense', amount: 500000, category: 'social', note: 'Gặp gỡ bạn bè cuối tuần', date: `${y}-${m}-12` },
-        { id: 'tx_9', type: 'expense', amount: 600000, category: 'utilities', note: 'Tiền điện nước sinh hoạt', date: `${y}-${m}-15` }
-      ];
+      if (currentUserProfile === 'em') {
+        ledgerState.transactions = [
+          { id: 'tx_em_1', type: 'income', amount: 18000000, category: 'salary', note: 'Nhận lương tháng', date: `${y}-${m}-01` },
+          { id: 'tx_em_2', type: 'expense', amount: 4500000, category: 'house', note: 'Chi phí nhà ở & dịch vụ', date: `${y}-${m}-01` },
+          { id: 'tx_em_3', type: 'expense', amount: 55000, category: 'food', note: 'Ăn trưa công ty', date: `${y}-${m}-02` },
+          { id: 'tx_em_4', type: 'expense', amount: 45000, category: 'food', note: 'Trà sữa chiều', date: `${y}-${m}-03` },
+          { id: 'tx_em_5', type: 'expense', amount: 280000, category: 'cosmetics', note: 'Kem chống nắng & son', date: `${y}-${m}-05` },
+          { id: 'tx_em_6', type: 'expense', amount: 350000, category: 'daily', note: 'Mua sắm siêu thị mini', date: `${y}-${m}-08` }
+        ];
+      } else {
+        ledgerState.transactions = [
+          { id: 'tx_1', type: 'income', amount: 15000000, category: 'salary', note: 'Nhận lương tháng', date: `${y}-${m}-01` },
+          { id: 'tx_2', type: 'expense', amount: 4000000, category: 'house', note: 'Tiền thuê nhà & dịch vụ', date: `${y}-${m}-01` },
+          { id: 'tx_3', type: 'expense', amount: 60000, category: 'food', note: 'Ăn trưa cơm văn phòng', date: `${y}-${m}-02` },
+          { id: 'tx_4', type: 'expense', amount: 45000, category: 'transport', note: 'Grab di chuyển', date: `${y}-${m}-02` },
+          { id: 'tx_5', type: 'expense', amount: 350000, category: 'daily', note: 'Tạp hóa siêu thị mini', date: `${y}-${m}-05` },
+          { id: 'tx_6', type: 'expense', amount: 220000, category: 'cosmetics', note: 'Mỹ phẩm dưỡng da', date: `${y}-${m}-08` },
+          { id: 'tx_7', type: 'expense', amount: 150000, category: 'telecom', note: 'Nạp cước điện thoại 4G', date: `${y}-${m}-10` },
+          { id: 'tx_8', type: 'expense', amount: 500000, category: 'social', note: 'Gặp gỡ bạn bè cuối tuần', date: `${y}-${m}-12` },
+          { id: 'tx_9', type: 'expense', amount: 600000, category: 'utilities', note: 'Tiền điện nước sinh hoạt', date: `${y}-${m}-15` }
+        ];
+      }
       saveLedgerToStorage();
     }
 
-    const rawBudgets = localStorage.getItem(LEDGER_BUDGET_KEY);
+    let rawBudgets = localStorage.getItem(bgKey);
+    if (!rawBudgets && currentUserProfile === 'anh') {
+      rawBudgets = localStorage.getItem(LEDGER_BUDGET_KEY);
+      if (rawBudgets) localStorage.setItem(bgKey, rawBudgets);
+    }
     if (rawBudgets) {
       ledgerState.budgetLimits = Object.assign(ledgerState.budgetLimits, JSON.parse(rawBudgets));
     }
@@ -1922,8 +2130,10 @@ function loadLedgerFromStorage() {
 
 function saveLedgerToStorage() {
   try {
-    localStorage.setItem(LEDGER_STORAGE_KEY, JSON.stringify(ledgerState.transactions));
-    localStorage.setItem(LEDGER_BUDGET_KEY, JSON.stringify(ledgerState.budgetLimits));
+    const txKey = getUserStorageKey(LEDGER_STORAGE_KEY);
+    const bgKey = getUserStorageKey(LEDGER_BUDGET_KEY);
+    localStorage.setItem(txKey, JSON.stringify(ledgerState.transactions));
+    localStorage.setItem(bgKey, JSON.stringify(ledgerState.budgetLimits));
   } catch (e) {
     console.warn('Ledger save failed:', e);
   }
@@ -2748,6 +2958,7 @@ function applyTheme(theme) {
 // Initial Boot
 window.addEventListener('DOMContentLoaded', () => {
   initThemeManager();
+  initCoupleProfileSwitcher();
   loadFromStorage();
   setupEventListeners();
   render();
