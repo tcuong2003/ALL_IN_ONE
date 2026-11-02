@@ -498,8 +498,8 @@ function renderDonutChart(totalPercent) {
   bgCircle.setAttribute('cx', '100');
   bgCircle.setAttribute('cy', '100');
   bgCircle.setAttribute('r', radius.toString());
-  bgCircle.setAttribute('class', 'donut-segment');
-  bgCircle.setAttribute('stroke', 'rgba(255, 255, 255, 0.05)');
+  bgCircle.setAttribute('class', 'donut-segment donut-segment-track');
+  bgCircle.setAttribute('stroke', (document.documentElement.getAttribute('data-theme') === 'dark') ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)');
   donutSvg.appendChild(bgCircle);
 
   state.categories.forEach(cat => {
@@ -2342,7 +2342,8 @@ function renderLedgerReports() {
     bgCircle.setAttribute('cy', '110');
     bgCircle.setAttribute('r', radius.toString());
     bgCircle.setAttribute('fill', 'none');
-    bgCircle.setAttribute('stroke', 'rgba(255, 255, 255, 0.05)');
+    bgCircle.setAttribute('class', 'donut-segment-track');
+    bgCircle.setAttribute('stroke', (document.documentElement.getAttribute('data-theme') === 'dark') ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)');
     bgCircle.setAttribute('stroke-width', '24');
     donutSvg.appendChild(bgCircle);
 
@@ -2699,8 +2700,50 @@ function initKomorebiLedger() {
   }
 }
 
+// ==========================================================================
+// Theme Manager (Light / Dark Mode)
+// ==========================================================================
+const AIO_STORAGE_KEY_THEME = 'aio_suite_theme_mode';
+
+function initThemeManager() {
+  const savedTheme = localStorage.getItem(AIO_STORAGE_KEY_THEME) || 'light';
+  applyTheme(savedTheme);
+
+  const toggleBtn = document.getElementById('btn-theme-toggle');
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+      const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+      applyTheme(newTheme);
+      localStorage.setItem(AIO_STORAGE_KEY_THEME, newTheme);
+      showToast(newTheme === 'light' ? 'Đã bật giao diện Sáng hài hòa' : 'Đã bật giao diện Tối');
+    });
+  }
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  const iconEl = document.getElementById('theme-toggle-icon');
+  const textEl = document.getElementById('theme-toggle-text');
+  if (theme === 'dark') {
+    if (iconEl) iconEl.textContent = '☀️';
+    if (textEl) textEl.textContent = 'Sáng';
+  } else {
+    if (iconEl) iconEl.textContent = '🌙';
+    if (textEl) textEl.textContent = 'Tối';
+  }
+  // Re-render chart if rendered
+  if (typeof renderDonutChart === 'function' && typeof state !== 'undefined') {
+    renderDonutChart(state.categories.reduce((acc, c) => acc + c.percent, 0));
+  }
+  if (typeof renderLedgerReports === 'function') {
+    renderLedgerReports();
+  }
+}
+
 // Initial Boot
 window.addEventListener('DOMContentLoaded', () => {
+  initThemeManager();
   loadFromStorage();
   setupEventListeners();
   render();

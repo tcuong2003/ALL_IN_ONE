@@ -17,6 +17,12 @@
   <link rel="apple-touch-icon" href="favicon.png">
   
   <link rel="stylesheet" href="style.css">
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('aio_suite_theme_mode') || 'light';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    })();
+  </script>
 </head>
 <body>
   <div class="app-layout">
@@ -60,6 +66,10 @@
       </div>
 
       <div class="header-actions">
+        <button type="button" id="btn-theme-toggle" class="btn btn-ghost" title="Chuyển chế độ Sáng / Tối">
+          <span id="theme-toggle-icon">🌙</span>
+          <span id="theme-toggle-text">Tối</span>
+        </button>
         <div class="currency-selector" title="Chọn đơn vị tiền tệ">
           <button type="button" class="currency-btn active" data-currency="VND">₫ VND</button>
           <button type="button" class="currency-btn" data-currency="USD">$ USD</button>
