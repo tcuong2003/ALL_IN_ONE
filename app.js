@@ -204,7 +204,7 @@ function applyRemoteCloudData(cloudData) {
     }
   }
 
-  if (activeProfileChanged) {
+  if (anhChanged || emChanged) {
     isRemoteUpdating = true;
     try {
       loadFromStorage();
@@ -340,10 +340,13 @@ function switchModule(moduleName) {
   if (moduleName === 'compound') {
     renderCompound();
   } else if (moduleName === 'budget') {
+    loadFromStorage();
     render();
   } else if (moduleName === 'notes') {
+    loadNotesFromStorage();
     renderNotesApp();
   } else if (moduleName === 'ledger') {
+    loadLedgerFromStorage();
     renderLedgerApp();
   }
 
@@ -1197,8 +1200,8 @@ function copyBreakdownToClipboard() {
 // =============================================================================
 
 const ciState = {
-  initial: 20000000,
-  monthly: 4000000,
+  initial: 0,
+  monthly: 0,
   rate: 10,
   years: 15,
   period: 'monthly' // 'monthly' or 'annually'
@@ -1303,9 +1306,16 @@ function renderCompound() {
   if (ciYearsVal) ciYearsVal.textContent = `${ciState.years} Năm`;
   if (ciSummaryYears) ciSummaryYears.textContent = ciState.years;
 
-  ciResultTotal.textContent = formatMoney(data.finalTotal);
-  ciResultPrincipal.textContent = formatMoney(data.finalPrincipal);
-  ciResultInterest.textContent = formatMoney(data.finalInterest);
+  if (ciResultTotal) ciResultTotal.textContent = formatMoney(data.finalTotal);
+  if (ciResultPrincipal) ciResultPrincipal.textContent = formatMoney(data.finalPrincipal);
+  if (ciResultInterest) ciResultInterest.textContent = formatMoney(data.finalInterest);
+
+  if (ciInitialInput && document.activeElement !== ciInitialInput) {
+    ciInitialInput.value = ciState.initial === 0 ? '' : formatNumberForInput(ciState.initial, suiteState.currency);
+  }
+  if (ciMonthlyInput && document.activeElement !== ciMonthlyInput) {
+    ciMonthlyInput.value = ciState.monthly === 0 ? '' : formatNumberForInput(ciState.monthly, suiteState.currency);
+  }
 
   // Proportions bar
   const total = data.finalTotal || 1;
@@ -3162,8 +3172,31 @@ function applyTheme(theme) {
   }
 }
 
+const AIO_CLEAN_VERSION = 'v5_clean_all';
+function enforceCleanSlate() {
+  if (localStorage.getItem('aio_clean_version') !== AIO_CLEAN_VERSION) {
+    const keys = [
+      'smartbudget_v1_data',
+      'smartbudget_v1_data_anh',
+      'smartbudget_v1_data_em',
+      'aio_apple_notes_data',
+      'aio_apple_notes_data_anh',
+      'aio_apple_notes_data_em',
+      'aio_komorebi_ledger_data',
+      'aio_komorebi_ledger_data_anh',
+      'aio_komorebi_ledger_data_em',
+      'aio_komorebi_budget_limits',
+      'aio_komorebi_budget_limits_anh',
+      'aio_komorebi_budget_limits_em'
+    ];
+    keys.forEach(k => localStorage.removeItem(k));
+    localStorage.setItem('aio_clean_version', AIO_CLEAN_VERSION);
+  }
+}
+
 // Initial Boot
 window.addEventListener('DOMContentLoaded', () => {
+  enforceCleanSlate();
   initThemeManager();
   initCoupleProfileSwitcher();
   loadFromStorage();

@@ -16,9 +16,30 @@
   <link rel="shortcut icon" href="favicon.ico">
   <link rel="apple-touch-icon" href="favicon.png">
   
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=2.5">
   <script>
     (function() {
+      // Clean slate migration: clear legacy sample data
+      const AIO_CLEAN_VERSION = 'v5_clean_all';
+      if (localStorage.getItem('aio_clean_version') !== AIO_CLEAN_VERSION) {
+        const keys = [
+          'smartbudget_v1_data',
+          'smartbudget_v1_data_anh',
+          'smartbudget_v1_data_em',
+          'aio_apple_notes_data',
+          'aio_apple_notes_data_anh',
+          'aio_apple_notes_data_em',
+          'aio_komorebi_ledger_data',
+          'aio_komorebi_ledger_data_anh',
+          'aio_komorebi_ledger_data_em',
+          'aio_komorebi_budget_limits',
+          'aio_komorebi_budget_limits_anh',
+          'aio_komorebi_budget_limits_em'
+        ];
+        keys.forEach(k => localStorage.removeItem(k));
+        localStorage.setItem('aio_clean_version', AIO_CLEAN_VERSION);
+      }
+
       const savedTheme = localStorage.getItem('aio_suite_theme_mode') || 'light';
       document.documentElement.setAttribute('data-theme', savedTheme);
       const savedMod = localStorage.getItem('aio_active_module') || 'budget';
@@ -344,12 +365,12 @@
                 <label for="ci-initial" class="form-label">Số tiền gốc ban đầu</label>
                 <div class="input-with-prefix">
                   <span class="field-prefix" id="ci-currency-prefix-1">₫</span>
-                  <input type="text" id="ci-initial" class="form-input text-mono font-bold" value="20.000.000" inputmode="numeric">
+                  <input type="text" id="ci-initial" class="form-input text-mono font-bold" value="" placeholder="0" inputmode="numeric">
                 </div>
                 <div class="quick-chips-row">
-                  <button class="chip-sm" data-ci-initial="0">0 đ</button>
+                  <button class="chip-sm active" data-ci-initial="0">0 đ</button>
                   <button class="chip-sm" data-ci-initial="10000000">10 Tr</button>
-                  <button class="chip-sm active" data-ci-initial="20000000">20 Tr</button>
+                  <button class="chip-sm" data-ci-initial="20000000">20 Tr</button>
                   <button class="chip-sm" data-ci-initial="50000000">50 Tr</button>
                   <button class="chip-sm" data-ci-initial="100000000">100 Tr</button>
                 </div>
@@ -362,11 +383,11 @@
                 </div>
                 <div class="input-with-prefix">
                   <span class="field-prefix" id="ci-currency-prefix-2">₫</span>
-                  <input type="text" id="ci-monthly" class="form-input text-mono font-bold" value="4.000.000" inputmode="numeric">
+                  <input type="text" id="ci-monthly" class="form-input text-mono font-bold" value="" placeholder="0" inputmode="numeric">
                 </div>
                 <div class="quick-chips-row">
                   <button class="chip-sm" data-ci-monthly="2000000">2 Tr/th</button>
-                  <button class="chip-sm active" data-ci-monthly="4000000">4 Tr/th</button>
+                  <button class="chip-sm" data-ci-monthly="4000000">4 Tr/th</button>
                   <button class="chip-sm" data-ci-monthly="6000000">6 Tr/th</button>
                   <button class="chip-sm" data-ci-monthly="10000000">10 Tr/th</button>
                 </div>
@@ -1089,6 +1110,6 @@
   <!-- Firebase Realtime Database Cloud Sync SDK (Google) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
-  <script src="app.js"></script>
+  <script src="app.js?v=2.5"></script>
 </body>
 </html>
