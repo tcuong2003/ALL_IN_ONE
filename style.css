@@ -1370,37 +1370,7 @@ body {
   to { transform: translateY(0); opacity: 1; }
 }
 
-/* ==========================================================================
-   Responsive Adaptations
-   ========================================================================== */
-
-@media (max-width: 1024px) {
-  .dashboard-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 768px) {
-  .app-layout {
-    padding: 16px 14px 40px;
-  }
-  .app-header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 16px;
-  }
-  .income-input {
-    font-size: 1.8rem;
-  }
-  .categories-grid {
-    grid-template-columns: 1fr;
-  }
-  .status-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
-}
+/* (Note: Master responsive media queries are consolidated at the end of this stylesheet) */
 
 
 /* ==========================================================================
@@ -2045,13 +2015,680 @@ body {
   border: 1px solid var(--border-subtle);
 }
 
-@media (max-width: 900px) {
+/* ==========================================================================
+   Comprehensive Mobile & Tablet Responsive Architecture
+   ========================================================================== */
+
+@media (max-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
   .compound-grid {
     grid-template-columns: 1fr;
+    gap: 24px;
   }
+}
+
+@media (max-width: 768px) {
+  /* Layout Base & Safe Area Insets for iOS Devices */
+  .app-layout {
+    padding: 12px 14px 48px;
+    padding-left: max(14px, env(safe-area-inset-left));
+    padding-right: max(14px, env(safe-area-inset-right));
+    padding-bottom: max(48px, env(safe-area-inset-bottom));
+  }
+
+  /* 1. App Header: Modern Stacked App Bar */
+  .app-header {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 14px 14px 12px;
+    gap: 12px;
+    border-radius: var(--radius-lg);
+    margin-bottom: 16px;
+  }
+
+  .header-left {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 12px;
+  }
+
+  .logo-badge {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .logo-icon-wrap {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+  }
+
+  .brand-logo-img {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+  }
+
+  .logo-title {
+    font-size: 1.25rem;
+    white-space: nowrap;
+    letter-spacing: -0.01em;
+  }
+
+  .badge-tag {
+    font-size: 0.6rem;
+    padding: 2px 6px;
+  }
+
+  .logo-subtitle {
+    font-size: 0.75rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 240px;
+  }
+
+  /* Navigation Tabs: Full-width Swipeable Segmented Control */
   .aio-nav-tabs {
-    overflow-x: auto;
     width: 100%;
     margin-left: 0;
+    display: flex;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 4px;
+    gap: 6px;
+    background: rgba(10, 14, 26, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-md);
+  }
+
+  .aio-nav-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .aio-tab-btn {
+    flex: 1 0 auto;
+    min-width: max-content;
+    padding: 8px 14px;
+    font-size: 0.82rem;
+    justify-content: center;
+    border-radius: 10px;
+  }
+
+  .aio-tab-btn.active {
+    box-shadow: 0 2px 10px rgba(99, 102, 241, 0.4);
+  }
+
+  /* Header Actions Bar */
+  .header-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 8px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .currency-selector {
+    flex-shrink: 0;
+  }
+
+  .currency-btn {
+    padding: 6px 10px;
+    font-size: 0.78rem;
+  }
+
+  #btn-export-text {
+    flex: 1;
+    justify-content: center;
+    font-size: 0.78rem;
+    padding: 7px 10px;
+    gap: 6px;
+  }
+
+  #btn-reset {
+    font-size: 0.78rem;
+    padding: 7px 10px;
+    gap: 4px;
+    color: var(--text-muted);
+  }
+
+  /* 2. Income Hero Card */
+  .income-card {
+    padding: 18px 16px;
+    border-radius: var(--radius-lg);
+    margin-bottom: 16px;
+  }
+
+  .income-label-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    margin-bottom: 10px;
+  }
+
+  .income-label {
+    font-size: 0.72rem;
+    letter-spacing: 0.05em;
+  }
+
+  .income-hint {
+    font-size: 0.74rem;
+  }
+
+  .income-field-group {
+    padding: 6px 14px;
+    border-radius: var(--radius-md);
+  }
+
+  .currency-prefix {
+    font-size: 1.6rem;
+    margin-right: 8px;
+  }
+
+  .income-input {
+    font-size: 1.75rem;
+  }
+
+  /* Quick Amount Chips: Smooth Horizontal Scroll */
+  .quick-amounts {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 8px;
+    margin-top: 12px;
+    padding-bottom: 4px;
+    width: 100%;
+  }
+
+  .quick-amounts::-webkit-scrollbar {
+    display: none;
+  }
+
+  .quick-label {
+    flex-shrink: 0;
+    font-size: 0.75rem;
+  }
+
+  .quick-btn, .quick-btn-add {
+    flex-shrink: 0;
+    padding: 6px 12px;
+    font-size: 0.78rem;
+    border-radius: 999px;
+  }
+
+  /* 100% Rule Status Container */
+  .rule-status-container {
+    margin-top: 18px;
+    padding-top: 16px;
+  }
+
+  .status-header {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .status-left {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
+
+  .status-badge {
+    font-size: 0.76rem;
+    padding: 5px 10px;
+  }
+
+  .total-percent-display {
+    font-size: 0.85rem;
+  }
+
+  .total-percent-display strong {
+    font-size: 1.05rem;
+  }
+
+  .status-actions {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .status-actions button {
+    flex: 1;
+    justify-content: center;
+    padding: 8px 12px;
+    font-size: 0.78rem;
+  }
+
+  .segmented-bar-wrapper {
+    margin-top: 8px;
+  }
+
+  .segmented-bar {
+    height: 12px;
+    border-radius: 999px;
+  }
+
+  /* 3. Preset Formulas: Swipeable Horizontal Carousel */
+  .controls-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .preset-selector {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 8px;
+  }
+
+  .toolbar-label {
+    font-size: 0.8rem;
+  }
+
+  .preset-chips {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 8px;
+    padding-bottom: 6px;
+    width: 100%;
+  }
+
+  .preset-chips::-webkit-scrollbar {
+    display: none;
+  }
+
+  .preset-chip {
+    flex: 0 0 auto;
+    width: 165px;
+    padding: 10px 12px;
+    border-radius: var(--radius-md);
+  }
+
+  .chip-name {
+    font-size: 0.82rem;
+    white-space: nowrap;
+  }
+
+  .chip-desc {
+    font-size: 0.68rem;
+    line-height: 1.35;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 145px;
+  }
+
+  .toolbar-right {
+    width: 100%;
+  }
+
+  #btn-open-add-modal {
+    width: 100%;
+    justify-content: center;
+    padding: 12px 16px;
+    font-size: 0.9rem;
+    border-radius: var(--radius-md);
+  }
+
+  /* 4. Categories Grid & Cards */
+  .panel-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .panel-title {
+    font-size: 1.1rem;
+  }
+
+  .panel-desc {
+    font-size: 0.78rem;
+    line-height: 1.4;
+  }
+
+  .quick-filter-sort {
+    width: 100%;
+  }
+
+  .form-select {
+    width: 100%;
+    padding: 9px 12px;
+    font-size: 0.82rem;
+    border-radius: var(--radius-sm);
+  }
+
+  .categories-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .category-card {
+    padding: 16px;
+    border-radius: var(--radius-lg);
+    gap: 14px;
+  }
+
+  .card-icon-badge {
+    width: 38px;
+    height: 38px;
+    font-size: 1.2rem;
+  }
+
+  .card-name {
+    font-size: 0.95rem;
+  }
+
+  .card-btn {
+    width: 34px;
+    height: 34px;
+  }
+
+  .card-amount-box {
+    padding: 10px 12px;
+  }
+
+  .card-amount-value {
+    font-size: 1.35rem;
+  }
+
+  .daily-equiv {
+    font-size: 0.7rem;
+  }
+
+  .percent-stepper {
+    border-radius: 8px;
+  }
+
+  .stepper-btn {
+    width: 34px;
+    height: 32px;
+    font-size: 1rem;
+  }
+
+  .percent-input-inline {
+    width: 44px;
+    height: 32px;
+    font-size: 0.88rem;
+  }
+
+  .percent-slider {
+    height: 28px;
+  }
+
+  .percent-slider::-webkit-slider-thumb {
+    width: 22px;
+    height: 22px;
+  }
+
+  .btn-quick-add-card {
+    padding: 14px;
+    font-size: 0.85rem;
+    border-radius: var(--radius-md);
+  }
+
+  /* 5. Insights Panel on Mobile */
+  .insights-panel {
+    gap: 16px;
+  }
+
+  .stat-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .stat-item {
+    padding: 10px 8px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: var(--radius-sm);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+  }
+
+  .stat-label {
+    font-size: 0.68rem;
+    margin-bottom: 4px;
+  }
+
+  .stat-value {
+    font-size: 0.88rem;
+    word-break: break-all;
+  }
+
+  .compound-link-banner {
+    padding: 12px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .compound-link-banner button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* 6. Module 2: Compound Interest Calculator on Mobile */
+  .module-intro-card {
+    padding: 16px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    border-radius: var(--radius-lg);
+  }
+
+  .intro-left {
+    gap: 12px;
+  }
+
+  .intro-icon {
+    font-size: 1.8rem;
+  }
+
+  .intro-title {
+    font-size: 1.1rem;
+  }
+
+  .intro-desc {
+    font-size: 0.78rem;
+  }
+
+  #btn-sync-from-budget {
+    width: 100%;
+    justify-content: center;
+    padding: 10px;
+    font-size: 0.82rem;
+  }
+
+  .compound-inputs-card {
+    padding: 16px;
+    border-radius: var(--radius-lg);
+  }
+
+  .ci-summary-card {
+    padding: 18px 16px;
+    border-radius: var(--radius-lg);
+  }
+
+  .ci-big-number {
+    font-size: 1.8rem;
+  }
+
+  .ci-metrics-split {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .milestone-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .milestone-table th, .milestone-table td {
+    padding: 8px 10px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+  }
+
+  /* Quick chips inside compound */
+  .quick-chips-row {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 6px;
+    padding-bottom: 4px;
+  }
+
+  .quick-chips-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .chip-sm {
+    flex-shrink: 0;
+    padding: 5px 10px;
+    font-size: 0.75rem;
+  }
+
+  /* 7. Module 3: Hub on Mobile */
+  .hub-hero {
+    padding: 24px 16px;
+    border-radius: var(--radius-lg);
+  }
+
+  .hub-hero-title {
+    font-size: 1.3rem;
+  }
+
+  .hub-hero-desc {
+    font-size: 0.8rem;
+  }
+
+  .hub-projects-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .hub-project-card {
+    padding: 18px 16px;
+  }
+
+  .hub-guide-card {
+    padding: 18px 16px;
+  }
+
+  .guide-step {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  /* 8. Modal on Mobile: iOS Bottom Sheet Style */
+  .modal-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .modal-card {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 22px 22px 0 0;
+    padding: 20px 16px;
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: slideUpMobile 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes slideUpMobile {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  .modal-header {
+    margin-bottom: 16px;
+  }
+
+  .emoji-picker {
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+  }
+
+  .emoji-btn {
+    width: 100%;
+    height: 38px;
+    font-size: 1.2rem;
+  }
+
+  .color-picker {
+    gap: 8px;
+  }
+
+  .color-circle {
+    width: 32px;
+    height: 32px;
+  }
+
+  .modal-footer {
+    margin-top: 18px;
+  }
+
+  .modal-footer button {
+    flex: 1;
+    padding: 12px;
+  }
+
+  /* Toast Notification */
+  .toast-container {
+    bottom: 24px;
+    right: 14px;
+    left: 14px;
+    max-width: calc(100% - 28px);
+    justify-content: center;
+  }
+}
+
+/* Extra small mobile adjustments (< 380px iPhone SE / Mini) */
+@media (max-width: 380px) {
+  .logo-title {
+    font-size: 1.05rem;
+  }
+  .income-input {
+    font-size: 1.5rem;
+  }
+  .currency-prefix {
+    font-size: 1.4rem;
+  }
+  .stat-metrics {
+    grid-template-columns: 1fr;
+  }
+  .emoji-picker {
+    grid-template-columns: repeat(5, 1fr);
   }
 }
