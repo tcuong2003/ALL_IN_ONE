@@ -116,37 +116,43 @@ function applyRemoteCloudData(cloudData) {
   if (cloudData.anh && cloudData.anh.updatedBy !== CLIENT_SESSION_ID) {
     let anhChanged = false;
     if (cloudData.anh.budget) {
+      const budgetObj = Object.assign({ categories: [] }, cloudData.anh.budget);
+      if (!Array.isArray(budgetObj.categories)) budgetObj.categories = [];
       const cur = localStorage.getItem('smartbudget_v1_data_anh');
-      const incoming = JSON.stringify(cloudData.anh.budget);
+      const incoming = JSON.stringify(budgetObj);
       if (cur !== incoming) {
         localStorage.setItem('smartbudget_v1_data_anh', incoming);
         anhChanged = true;
       }
     }
-    if (cloudData.anh.notes) {
-      const cur = localStorage.getItem('aio_apple_notes_data_anh');
-      const incoming = JSON.stringify(cloudData.anh.notes);
-      if (cur !== incoming) {
-        localStorage.setItem('aio_apple_notes_data_anh', incoming);
-        anhChanged = true;
-      }
+
+    // Notes
+    const incomingNotes = Array.isArray(cloudData.anh.notes) ? cloudData.anh.notes : [];
+    const curNotes = localStorage.getItem('aio_apple_notes_data_anh');
+    const incomingNotesStr = JSON.stringify(incomingNotes);
+    if (curNotes !== incomingNotesStr) {
+      localStorage.setItem('aio_apple_notes_data_anh', incomingNotesStr);
+      anhChanged = true;
     }
-    if (cloudData.anh.ledger) {
-      const curTx = localStorage.getItem('aio_komorebi_ledger_data_anh');
-      const inTx = JSON.stringify(cloudData.anh.ledger.transactions || []);
-      if (curTx !== inTx) {
-        localStorage.setItem('aio_komorebi_ledger_data_anh', inTx);
-        anhChanged = true;
-      }
-      if (cloudData.anh.ledger.budgetLimits) {
-        const curBg = localStorage.getItem('aio_komorebi_budget_limits_anh');
-        const inBg = JSON.stringify(cloudData.anh.ledger.budgetLimits);
-        if (curBg !== inBg) {
-          localStorage.setItem('aio_komorebi_budget_limits_anh', inBg);
-          anhChanged = true;
-        }
-      }
+
+    // Ledger Transactions
+    const incomingTx = Array.isArray(cloudData.anh.ledger?.transactions) ? cloudData.anh.ledger.transactions : [];
+    const curTx = localStorage.getItem('aio_komorebi_ledger_data_anh');
+    const inTxStr = JSON.stringify(incomingTx);
+    if (curTx !== inTxStr) {
+      localStorage.setItem('aio_komorebi_ledger_data_anh', inTxStr);
+      anhChanged = true;
     }
+
+    // Ledger Budget Limits
+    const incomingBg = cloudData.anh.ledger?.budgetLimits || {};
+    const curBg = localStorage.getItem('aio_komorebi_budget_limits_anh');
+    const inBgStr = JSON.stringify(incomingBg);
+    if (curBg !== inBgStr) {
+      localStorage.setItem('aio_komorebi_budget_limits_anh', inBgStr);
+      anhChanged = true;
+    }
+
     if (anhChanged && currentUserProfile === 'anh') {
       activeProfileChanged = true;
     }
@@ -156,37 +162,43 @@ function applyRemoteCloudData(cloudData) {
   if (cloudData.em && cloudData.em.updatedBy !== CLIENT_SESSION_ID) {
     let emChanged = false;
     if (cloudData.em.budget) {
+      const budgetObj = Object.assign({ categories: [] }, cloudData.em.budget);
+      if (!Array.isArray(budgetObj.categories)) budgetObj.categories = [];
       const cur = localStorage.getItem('smartbudget_v1_data_em');
-      const incoming = JSON.stringify(cloudData.em.budget);
+      const incoming = JSON.stringify(budgetObj);
       if (cur !== incoming) {
         localStorage.setItem('smartbudget_v1_data_em', incoming);
         emChanged = true;
       }
     }
-    if (cloudData.em.notes) {
-      const cur = localStorage.getItem('aio_apple_notes_data_em');
-      const incoming = JSON.stringify(cloudData.em.notes);
-      if (cur !== incoming) {
-        localStorage.setItem('aio_apple_notes_data_em', incoming);
-        emChanged = true;
-      }
+
+    // Notes
+    const incomingNotes = Array.isArray(cloudData.em.notes) ? cloudData.em.notes : [];
+    const curNotes = localStorage.getItem('aio_apple_notes_data_em');
+    const incomingNotesStr = JSON.stringify(incomingNotes);
+    if (curNotes !== incomingNotesStr) {
+      localStorage.setItem('aio_apple_notes_data_em', incomingNotesStr);
+      emChanged = true;
     }
-    if (cloudData.em.ledger) {
-      const curTx = localStorage.getItem('aio_komorebi_ledger_data_em');
-      const inTx = JSON.stringify(cloudData.em.ledger.transactions || []);
-      if (curTx !== inTx) {
-        localStorage.setItem('aio_komorebi_ledger_data_em', inTx);
-        emChanged = true;
-      }
-      if (cloudData.em.ledger.budgetLimits) {
-        const curBg = localStorage.getItem('aio_komorebi_budget_limits_em');
-        const inBg = JSON.stringify(cloudData.em.ledger.budgetLimits);
-        if (curBg !== inBg) {
-          localStorage.setItem('aio_komorebi_budget_limits_em', inBg);
-          emChanged = true;
-        }
-      }
+
+    // Ledger Transactions
+    const incomingTx = Array.isArray(cloudData.em.ledger?.transactions) ? cloudData.em.ledger.transactions : [];
+    const curTx = localStorage.getItem('aio_komorebi_ledger_data_em');
+    const inTxStr = JSON.stringify(incomingTx);
+    if (curTx !== inTxStr) {
+      localStorage.setItem('aio_komorebi_ledger_data_em', inTxStr);
+      emChanged = true;
     }
+
+    // Ledger Budget Limits
+    const incomingBg = cloudData.em.ledger?.budgetLimits || {};
+    const curBg = localStorage.getItem('aio_komorebi_budget_limits_em');
+    const inBgStr = JSON.stringify(incomingBg);
+    if (curBg !== inBgStr) {
+      localStorage.setItem('aio_komorebi_budget_limits_em', inBgStr);
+      emChanged = true;
+    }
+
     if (emChanged && currentUserProfile === 'em') {
       activeProfileChanged = true;
     }
@@ -262,8 +274,14 @@ function pushProfileDataToCloud(profile) {
     }
 
     const payload = {
-      budget: budgetObj,
-      notes: notesRaw ? JSON.parse(notesRaw) : null,
+      budget: budgetObj || {
+        income: 0,
+        currency: 'VND',
+        activePreset: '50-30-20',
+        sortBy: 'default',
+        categories: []
+      },
+      notes: notesRaw ? JSON.parse(notesRaw) : [],
       ledger: {
         transactions: ledgerTxRaw ? JSON.parse(ledgerTxRaw) : [],
         budgetLimits: ledgerBgRaw ? JSON.parse(ledgerBgRaw) : {}
@@ -523,11 +541,11 @@ const PRESETS = {
 };
 
 const state = {
-  income: 20000000,
+  income: 0,
   currency: 'VND',
   activePreset: '50-30-20',
   sortBy: 'default',
-  categories: JSON.parse(JSON.stringify(PRESETS['50-30-20']))
+  categories: []
 };
 
 const STORAGE_KEY = 'smartbudget_v1_data';
@@ -566,30 +584,16 @@ function loadFromStorage() {
       if (data.currency) suiteState.currency = data.currency;
       if (data.activePreset) state.activePreset = data.activePreset;
       if (data.sortBy) state.sortBy = data.sortBy;
-      if (Array.isArray(data.categories) && data.categories.length > 0) {
+      if (Array.isArray(data.categories)) {
         state.categories = data.categories;
       }
     } else {
-      // Default initialization based on active user
-      if (currentUserProfile === 'em') {
-        state.income = 18000000;
-        suiteState.currency = 'VND';
-        state.activePreset = '50-30-20';
-        state.sortBy = 'default';
-        state.categories = [
-          { id: 'cat_em_1', name: 'Nhu cầu thiết yếu', percent: 50, color: '#3b82f6', icon: '🏠', note: 'Tiền phòng, ăn uống, điện nước sinh hoạt' },
-          { id: 'cat_em_2', name: 'Mua sắm & Làm đẹp', percent: 30, color: '#ec4899', icon: '💄', note: 'Mỹ phẩm skincare, quần áo, cafe bạn bè' },
-          { id: 'cat_em_3', name: 'Tiết kiệm & Tích lũy', percent: 20, color: '#10b981', icon: '💰', note: 'Quỹ dự phòng cá nhân & tương lai' }
-        ];
-        saveToStorage();
-      } else {
-        state.income = 20000000;
-        suiteState.currency = 'VND';
-        state.activePreset = '50-30-20';
-        state.sortBy = 'default';
-        state.categories = JSON.parse(JSON.stringify(PRESETS['50-30-20']));
-        saveToStorage();
-      }
+      state.income = 0;
+      suiteState.currency = 'VND';
+      state.activePreset = '50-30-20';
+      state.sortBy = 'default';
+      state.categories = [];
+      saveToStorage();
     }
   } catch (e) {
     console.warn('LocalStorage load failed:', e);
@@ -758,6 +762,24 @@ function renderCategoryCards() {
   if (!categoriesContainer) return;
   categoriesContainer.innerHTML = '';
   const sorted = getSortedCategories();
+
+  if (sorted.length === 0) {
+    categoriesContainer.innerHTML = `
+      <div class="empty-categories-card" style="grid-column: 1 / -1; padding: 36px 20px; text-align: center; background: var(--bg-card); border: 2px dashed var(--border-subtle); border-radius: var(--radius-md);">
+        <div style="font-size: 2.2rem; margin-bottom: 10px;">📊</div>
+        <div style="font-weight: 700; font-size: 1.05rem; color: var(--text-primary); margin-bottom: 6px;">Chưa có khoản chi tiêu nào</div>
+        <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 18px; max-width: 440px; margin-left: auto; margin-right: auto;">
+          Bấm nút bên dưới để tạo khoản chi mới hoặc chọn một công thức phổ biến ở trên (50/30/20, 6 Chiếc Lọ).
+        </p>
+        <button type="button" class="btn btn-primary" id="btn-empty-add-card" style="display: inline-flex; align-items: center; gap: 8px; margin: 0 auto; padding: 10px 20px; font-weight: 600;">
+          <span>➕ Thêm ô chi tiêu mới</span>
+        </button>
+      </div>
+    `;
+    const btnEmptyAdd = document.getElementById('btn-empty-add-card');
+    if (btnEmptyAdd) btnEmptyAdd.addEventListener('click', openAddModal);
+    return;
+  }
 
   sorted.forEach(cat => {
     const amount = (state.income * cat.percent) / 100;
@@ -942,12 +964,21 @@ function renderDonutChart(totalPercent) {
     `;
     chartLegend.appendChild(legendItem);
   });
+
+  if (state.categories.length === 0) {
+    chartLegend.innerHTML = '<p style="color: var(--text-muted); font-size: 0.82rem; text-align: center; padding: 12px 0;">Chưa có danh mục</p>';
+  }
 }
 
 function renderDailyBreakdown() {
   if (!dailyBreakdownList) return;
   dailyBreakdownList.innerHTML = '';
   const sorted = [...state.categories].sort((a, b) => b.percent - a.percent);
+
+  if (sorted.length === 0) {
+    dailyBreakdownList.innerHTML = '<p style="color: var(--text-muted); font-size: 0.82rem; text-align: center; padding: 12px 0;">Chưa có dữ liệu</p>';
+    return;
+  }
 
   sorted.forEach(cat => {
     const daily = (state.income * cat.percent) / 100 / 30;
@@ -1487,28 +1518,15 @@ function setupEventListeners() {
   if (btnReset) {
     btnReset.addEventListener('click', () => {
       const userLabel = currentUserProfile === 'anh' ? 'của Anh' : 'của Em';
-      if (confirm(`Bạn có muốn đặt lại toàn bộ cài đặt phân bổ ${userLabel} về mặc định không?`)) {
-        localStorage.removeItem(getUserStorageKey(STORAGE_KEY));
-        if (currentUserProfile === 'em') {
-          state.income = 18000000;
-          suiteState.currency = 'VND';
-          state.activePreset = '50-30-20';
-          state.sortBy = 'default';
-          state.categories = [
-            { id: 'cat_em_1', name: 'Nhu cầu thiết yếu', percent: 50, color: '#3b82f6', icon: '🏠', note: 'Tiền phòng, ăn uống, điện nước sinh hoạt' },
-            { id: 'cat_em_2', name: 'Mua sắm & Làm đẹp', percent: 30, color: '#ec4899', icon: '💄', note: 'Mỹ phẩm skincare, quần áo, cafe bạn bè' },
-            { id: 'cat_em_3', name: 'Tiết kiệm & Tích lũy', percent: 20, color: '#10b981', icon: '💰', note: 'Quỹ dự phòng cá nhân & tương lai' }
-          ];
-        } else {
-          state.income = 20000000;
-          suiteState.currency = 'VND';
-          state.activePreset = '50-30-20';
-          state.sortBy = 'default';
-          state.categories = JSON.parse(JSON.stringify(PRESETS['50-30-20']));
-        }
+      if (confirm(`Bạn có muốn xóa sạch toàn bộ cài đặt phân bổ ${userLabel} không?`)) {
+        state.income = 0;
+        suiteState.currency = 'VND';
+        state.activePreset = '50-30-20';
+        state.sortBy = 'default';
+        state.categories = [];
         saveToStorage();
         render();
-        showToast(`Đã đặt lại dữ liệu ${userLabel} thành công!`);
+        showToast(`Đã làm trống dữ liệu ${userLabel} thành công!`);
       }
     });
   }
@@ -1618,70 +1636,8 @@ function setupEventListeners() {
 
 const NOTES_STORAGE_KEY = 'aio_apple_notes_data';
 
-const DEFAULT_STARTER_NOTES = [
-  {
-    id: 'note_1',
-    folder: 'budget',
-    title: 'Kế hoạch tài chính & kiểm soát dòng tiền',
-    content: `<div>Mục tiêu phân bổ chi tiêu tháng này theo chuẩn 100%:</div>
-<div class="apple-checklist-item checked"><span class="apple-checkbox" contenteditable="false">✓</span><span class="checklist-text">Cố định tiền nhà & hóa đơn thiết yếu (50%)</span></div>
-<div class="apple-checklist-item checked"><span class="apple-checkbox" contenteditable="false">✓</span><span class="checklist-text">Trích ngay 20% vào quỹ tiết kiệm / đầu tư dài hạn</span></div>
-<div class="apple-checklist-item"><span class="apple-checkbox" contenteditable="false"></span><span class="checklist-text">Chi tiêu ăn uống & sinh hoạt dưới 250.000 ₫/ngày</span></div>
-<div class="apple-checklist-item"><span class="apple-checkbox" contenteditable="false"></span><span class="checklist-text">Tổng kết số dư vào ngày 30 hàng tháng</span></div>`,
-    isPinned: true,
-    updatedAt: Date.now() - 1000 * 60 * 30
-  },
-  {
-    id: 'note_2',
-    folder: 'compound',
-    title: 'Kỷ luật lãi kép và cột mốc tự do tài chính',
-    content: `<div>Nguyên tắc kỳ quan thứ 8 để tiền đẻ ra tiền:</div>
-<div>• <strong>Kiên trì tích lũy:</strong> Gửi đều đặn mỗi tháng không bỏ lỡ.</div>
-<div>• <strong>Lãi suất kỳ vọng:</strong> 10% - 15%/năm qua các quỹ chỉ số và cổ phiếu tăng trưởng.</div>
-<div>• <strong>Không rút vốn sớm:</strong> Để thời gian 10 - 20 năm phát huy sức mạnh nhân đôi tài sản.</div>
-<div>🎯 <em>"Lãi kép là người bạn tốt nhất của người có tính kỷ luật."</em></div>`,
-    isPinned: true,
-    updatedAt: Date.now() - 1000 * 60 * 60 * 3
-  },
-  {
-    id: 'note_3',
-    folder: 'personal',
-    title: 'Lộ trình phát triển All In One Suite',
-    content: `<div>Các công cụ tiếp theo sẽ tích hợp vào hệ sinh thái:</div>
-<div class="apple-checklist-item checked"><span class="apple-checkbox" contenteditable="false">✓</span><span class="checklist-text">SmartBudget 100% (Phân bổ chi tiêu tự động)</span></div>
-<div class="apple-checklist-item checked"><span class="apple-checkbox" contenteditable="false">✓</span><span class="checklist-text">Lãi kép & Tích lũy tài sản dài hạn</span></div>
-<div class="apple-checklist-item checked"><span class="apple-checkbox" contenteditable="false">✓</span><span class="checklist-text">Apple Notes Pro ghi chú theo từng dự án</span></div>
-<div class="apple-checklist-item"><span class="apple-checkbox" contenteditable="false"></span><span class="checklist-text">Tích hợp Bảng trắng Whiteboard / Canvas vẽ tư duy</span></div>
-<div class="apple-checklist-item"><span class="apple-checkbox" contenteditable="false"></span><span class="checklist-text">Tính thuế TNCN & kế hoạch trả góp ngân hàng</span></div>`,
-    isPinned: false,
-    updatedAt: Date.now() - 1000 * 60 * 60 * 24
-  }
-];
-
-const DEFAULT_STARTER_NOTES_EM = [
-  {
-    id: 'note_em_1',
-    folder: 'personal',
-    title: 'Ghi chú của Em ❤️',
-    content: `<div>Chào mừng Em đến với không gian cá nhân của Em!</div>
-<div class="apple-checklist-item checked"><span class="apple-checkbox" contenteditable="false">✓</span><span class="checklist-text">Cân bằng ngân sách và theo dõi chi tiêu cá nhân</span></div>
-<div class="apple-checklist-item checked"><span class="apple-checkbox" contenteditable="false">✓</span><span class="checklist-text">Tiết kiệm quỹ tương lai cùng Anh</span></div>
-<div class="apple-checklist-item"><span class="apple-checkbox" contenteditable="false"></span><span class="checklist-text">Tự thưởng cho bản thân mỗi khi hoàn thành mục tiêu</span></div>`,
-    isPinned: true,
-    updatedAt: Date.now() - 1000 * 60 * 20
-  },
-  {
-    id: 'note_em_2',
-    folder: 'budget',
-    title: 'Wishlist & Những điều xinh xắn ✨',
-    content: `<div>Danh sách những món đồ và hoạt động muốn trải nghiệm:</div>
-<div>• 💄 Bộ mỹ phẩm dưỡng da yêu thích</div>
-<div>• 👗 Váy hoa đi cafe hẹn hò cuối tuần</div>
-<div>• ✈️ Kế hoạch du lịch cùng Anh cuối năm</div>`,
-    isPinned: false,
-    updatedAt: Date.now() - 1000 * 60 * 60 * 2
-  }
-];
+const DEFAULT_STARTER_NOTES = [];
+const DEFAULT_STARTER_NOTES_EM = [];
 
 const notesState = {
   notes: [],
@@ -1699,23 +1655,20 @@ function loadNotesFromStorage() {
       if (raw) localStorage.setItem(key, raw);
     }
 
-    const defaultNotes = currentUserProfile === 'em' ? DEFAULT_STARTER_NOTES_EM : DEFAULT_STARTER_NOTES;
-
     if (raw) {
       const data = JSON.parse(raw);
-      if (Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data)) {
         notesState.notes = data;
       } else {
-        notesState.notes = JSON.parse(JSON.stringify(defaultNotes));
+        notesState.notes = [];
       }
     } else {
-      notesState.notes = JSON.parse(JSON.stringify(defaultNotes));
+      notesState.notes = [];
       saveNotesToStorage();
     }
   } catch (e) {
     console.warn('Failed to load notes:', e);
-    const defaultNotes = currentUserProfile === 'em' ? DEFAULT_STARTER_NOTES_EM : DEFAULT_STARTER_NOTES;
-    notesState.notes = JSON.parse(JSON.stringify(defaultNotes));
+    notesState.notes = [];
   }
 
   if (notesState.notes.length > 0) {
@@ -2360,31 +2313,9 @@ function loadLedgerFromStorage() {
     if (raw) {
       const data = JSON.parse(raw);
       if (Array.isArray(data)) ledgerState.transactions = data;
+      else ledgerState.transactions = [];
     } else {
-      const y = ledgerState.currentYear;
-      const m = String(ledgerState.currentMonth + 1).padStart(2, '0');
-      if (currentUserProfile === 'em') {
-        ledgerState.transactions = [
-          { id: 'tx_em_1', type: 'income', amount: 18000000, category: 'salary', note: 'Nhận lương tháng', date: `${y}-${m}-01` },
-          { id: 'tx_em_2', type: 'expense', amount: 4500000, category: 'house', note: 'Chi phí nhà ở & dịch vụ', date: `${y}-${m}-01` },
-          { id: 'tx_em_3', type: 'expense', amount: 55000, category: 'food', note: 'Ăn trưa công ty', date: `${y}-${m}-02` },
-          { id: 'tx_em_4', type: 'expense', amount: 45000, category: 'food', note: 'Trà sữa chiều', date: `${y}-${m}-03` },
-          { id: 'tx_em_5', type: 'expense', amount: 280000, category: 'cosmetics', note: 'Kem chống nắng & son', date: `${y}-${m}-05` },
-          { id: 'tx_em_6', type: 'expense', amount: 350000, category: 'daily', note: 'Mua sắm siêu thị mini', date: `${y}-${m}-08` }
-        ];
-      } else {
-        ledgerState.transactions = [
-          { id: 'tx_1', type: 'income', amount: 15000000, category: 'salary', note: 'Nhận lương tháng', date: `${y}-${m}-01` },
-          { id: 'tx_2', type: 'expense', amount: 4000000, category: 'house', note: 'Tiền thuê nhà & dịch vụ', date: `${y}-${m}-01` },
-          { id: 'tx_3', type: 'expense', amount: 60000, category: 'food', note: 'Ăn trưa cơm văn phòng', date: `${y}-${m}-02` },
-          { id: 'tx_4', type: 'expense', amount: 45000, category: 'transport', note: 'Grab di chuyển', date: `${y}-${m}-02` },
-          { id: 'tx_5', type: 'expense', amount: 350000, category: 'daily', note: 'Tạp hóa siêu thị mini', date: `${y}-${m}-05` },
-          { id: 'tx_6', type: 'expense', amount: 220000, category: 'cosmetics', note: 'Mỹ phẩm dưỡng da', date: `${y}-${m}-08` },
-          { id: 'tx_7', type: 'expense', amount: 150000, category: 'telecom', note: 'Nạp cước điện thoại 4G', date: `${y}-${m}-10` },
-          { id: 'tx_8', type: 'expense', amount: 500000, category: 'social', note: 'Gặp gỡ bạn bè cuối tuần', date: `${y}-${m}-12` },
-          { id: 'tx_9', type: 'expense', amount: 600000, category: 'utilities', note: 'Tiền điện nước sinh hoạt', date: `${y}-${m}-15` }
-        ];
-      }
+      ledgerState.transactions = [];
       saveLedgerToStorage();
     }
 
