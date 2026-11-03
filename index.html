@@ -16,30 +16,9 @@
   <link rel="shortcut icon" href="favicon.ico">
   <link rel="apple-touch-icon" href="favicon.png">
   
-  <link rel="stylesheet" href="style.css?v=2.5">
+  <link rel="stylesheet" href="style.css?v=3.0">
   <script>
     (function() {
-      // Clean slate migration: clear legacy sample data
-      const AIO_CLEAN_VERSION = 'v5_clean_all';
-      if (localStorage.getItem('aio_clean_version') !== AIO_CLEAN_VERSION) {
-        const keys = [
-          'smartbudget_v1_data',
-          'smartbudget_v1_data_anh',
-          'smartbudget_v1_data_em',
-          'aio_apple_notes_data',
-          'aio_apple_notes_data_anh',
-          'aio_apple_notes_data_em',
-          'aio_komorebi_ledger_data',
-          'aio_komorebi_ledger_data_anh',
-          'aio_komorebi_ledger_data_em',
-          'aio_komorebi_budget_limits',
-          'aio_komorebi_budget_limits_anh',
-          'aio_komorebi_budget_limits_em'
-        ];
-        keys.forEach(k => localStorage.removeItem(k));
-        localStorage.setItem('aio_clean_version', AIO_CLEAN_VERSION);
-      }
-
       const savedTheme = localStorage.getItem('aio_suite_theme_mode') || 'light';
       document.documentElement.setAttribute('data-theme', savedTheme);
       const savedMod = localStorage.getItem('aio_active_module') || 'budget';
@@ -1110,6 +1089,6 @@
   <!-- Firebase Realtime Database Cloud Sync SDK (Google) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
-  <script src="app.js?v=2.5"></script>
+  <script src="app.js?v=3.0"></script>
 </body>
 </html>

@@ -43,6 +43,20 @@ const CLIENT_SESSION_ID = 'client_' + Math.random().toString(36).substring(2, 9)
 let cloudDb = null;
 let isRemoteUpdating = false;
 let cloudSyncTimeout = null;
+let hasInitialCloudSyncLoaded = false;
+
+function safeArray(val) {
+  if (!val) return [];
+  if (Array.isArray(val)) return val;
+  if (typeof val === 'object') return Object.values(val);
+  return [];
+}
+
+function markProfileLocallyUpdated(profile) {
+  const ts = Date.now();
+  localStorage.setItem(`aio_updatedAt_${profile}`, ts.toString());
+  return ts;
+}
 
 function updateSyncStatusUI(status, text) {
   const ind = document.getElementById('sync-status-indicator');
@@ -85,16 +99,20 @@ function initCloudSync() {
     suiteRef.on('value', snapshot => {
       const data = snapshot.val();
       if (!data) {
-        // Initial setup on new cloud database: seed with local data
-        pushFullLocalDataToCloud();
+        // Initial setup on brand new cloud database: seed ONLY if local has actual data
+        hasInitialCloudSyncLoaded = true;
+        const localAnh = localStorage.getItem('smartbudget_v1_data_anh') || localStorage.getItem('smartbudget_v1_data');
+        const localEm = localStorage.getItem('smartbudget_v1_data_em');
+        if (localAnh || localEm) {
+          pushFullLocalDataToCloud();
+        }
         return;
       }
 
-      if (!data.anh) pushProfileDataToCloud('anh');
-      if (!data.em) pushProfileDataToCloud('em');
-
-      if (isRemoteUpdating) return;
-      applyRemoteCloudData(data);
+      if (!isRemoteUpdating) {
+        applyRemoteCloudData(data);
+      }
+      hasInitialCloudSyncLoaded = true;
     });
 
     const statusBadge = document.getElementById('cloud-sync-status');
@@ -110,101 +128,84 @@ function initCloudSync() {
 }
 
 function applyRemoteCloudData(cloudData) {
-  let activeProfileChanged = false;
+  if (!cloudData) return;
 
-  // 1. Sync Anh profile
-  if (cloudData.anh && cloudData.anh.updatedBy !== CLIENT_SESSION_ID) {
-    let anhChanged = false;
-    if (cloudData.anh.budget) {
-      const budgetObj = Object.assign({ categories: [] }, cloudData.anh.budget);
-      if (!Array.isArray(budgetObj.categories)) budgetObj.categories = [];
-      const cur = localStorage.getItem('smartbudget_v1_data_anh');
+  let anhChanged = false;
+  let emChanged = false;
+
+  ['anh', 'em'].forEach(profile => {
+    const remote = cloudData[profile];
+    if (!remote) return;
+
+    // Ignore echo from this browser session
+    if (remote.updatedBy === CLIENT_SESSION_ID) return;
+
+    const localUpdatedAt = Number(localStorage.getItem(`aio_updatedAt_${profile}`) || 0);
+    const remoteUpdatedAt = Number(remote.updatedAt || 0);
+
+    // Conflict resolution:
+    // If local has newer edits (within the last 2 minutes), keep local and push to cloud
+    if (localUpdatedAt > remoteUpdatedAt && (Date.now() - localUpdatedAt < 120000)) {
+      pushProfileDataToCloud(profile);
+      return;
+    }
+
+    let profileModified = false;
+
+    // 1. Budget
+    if (remote.budget) {
+      const budgetObj = {
+        income: typeof remote.budget.income === 'number' ? remote.budget.income : 0,
+        currency: remote.budget.currency || 'VND',
+        activePreset: remote.budget.activePreset || '50-30-20',
+        sortBy: remote.budget.sortBy || 'default',
+        categories: safeArray(remote.budget.categories)
+      };
+      const cur = localStorage.getItem(`smartbudget_v1_data_${profile}`);
       const incoming = JSON.stringify(budgetObj);
       if (cur !== incoming) {
-        localStorage.setItem('smartbudget_v1_data_anh', incoming);
-        anhChanged = true;
+        localStorage.setItem(`smartbudget_v1_data_${profile}`, incoming);
+        profileModified = true;
       }
     }
 
-    // Notes
-    const incomingNotes = Array.isArray(cloudData.anh.notes) ? cloudData.anh.notes : [];
-    const curNotes = localStorage.getItem('aio_apple_notes_data_anh');
-    const incomingNotesStr = JSON.stringify(incomingNotes);
-    if (curNotes !== incomingNotesStr) {
-      localStorage.setItem('aio_apple_notes_data_anh', incomingNotesStr);
-      anhChanged = true;
+    // 2. Apple Notes
+    const incomingNotes = safeArray(remote.notes);
+    const curNotes = localStorage.getItem(`aio_apple_notes_data_${profile}`);
+    const inNotesStr = JSON.stringify(incomingNotes);
+    if (curNotes !== inNotesStr) {
+      localStorage.setItem(`aio_apple_notes_data_${profile}`, inNotesStr);
+      profileModified = true;
     }
 
-    // Ledger Transactions
-    const incomingTx = Array.isArray(cloudData.anh.ledger?.transactions) ? cloudData.anh.ledger.transactions : [];
-    const curTx = localStorage.getItem('aio_komorebi_ledger_data_anh');
+    // 3. Ledger Transactions
+    const incomingTx = safeArray(remote.ledger?.transactions);
+    const curTx = localStorage.getItem(`aio_komorebi_ledger_data_${profile}`);
     const inTxStr = JSON.stringify(incomingTx);
     if (curTx !== inTxStr) {
-      localStorage.setItem('aio_komorebi_ledger_data_anh', inTxStr);
-      anhChanged = true;
+      localStorage.setItem(`aio_komorebi_ledger_data_${profile}`, inTxStr);
+      profileModified = true;
     }
 
-    // Ledger Budget Limits
-    const incomingBg = cloudData.anh.ledger?.budgetLimits || {};
-    const curBg = localStorage.getItem('aio_komorebi_budget_limits_anh');
+    // 4. Ledger Budget Limits
+    const incomingBg = remote.ledger?.budgetLimits || {};
+    const curBg = localStorage.getItem(`aio_komorebi_budget_limits_${profile}`);
     const inBgStr = JSON.stringify(incomingBg);
     if (curBg !== inBgStr) {
-      localStorage.setItem('aio_komorebi_budget_limits_anh', inBgStr);
-      anhChanged = true;
+      localStorage.setItem(`aio_komorebi_budget_limits_${profile}`, inBgStr);
+      profileModified = true;
     }
 
-    if (anhChanged && currentUserProfile === 'anh') {
-      activeProfileChanged = true;
+    if (profileModified) {
+      localStorage.setItem(`aio_updatedAt_${profile}`, remoteUpdatedAt ? remoteUpdatedAt.toString() : Date.now().toString());
+      if (profile === 'anh') anhChanged = true;
+      if (profile === 'em') emChanged = true;
     }
-  }
+  });
 
-  // 2. Sync Em profile
-  if (cloudData.em && cloudData.em.updatedBy !== CLIENT_SESSION_ID) {
-    let emChanged = false;
-    if (cloudData.em.budget) {
-      const budgetObj = Object.assign({ categories: [] }, cloudData.em.budget);
-      if (!Array.isArray(budgetObj.categories)) budgetObj.categories = [];
-      const cur = localStorage.getItem('smartbudget_v1_data_em');
-      const incoming = JSON.stringify(budgetObj);
-      if (cur !== incoming) {
-        localStorage.setItem('smartbudget_v1_data_em', incoming);
-        emChanged = true;
-      }
-    }
+  const shouldRefreshUI = (anhChanged && currentUserProfile === 'anh') || (emChanged && currentUserProfile === 'em');
 
-    // Notes
-    const incomingNotes = Array.isArray(cloudData.em.notes) ? cloudData.em.notes : [];
-    const curNotes = localStorage.getItem('aio_apple_notes_data_em');
-    const incomingNotesStr = JSON.stringify(incomingNotes);
-    if (curNotes !== incomingNotesStr) {
-      localStorage.setItem('aio_apple_notes_data_em', incomingNotesStr);
-      emChanged = true;
-    }
-
-    // Ledger Transactions
-    const incomingTx = Array.isArray(cloudData.em.ledger?.transactions) ? cloudData.em.ledger.transactions : [];
-    const curTx = localStorage.getItem('aio_komorebi_ledger_data_em');
-    const inTxStr = JSON.stringify(incomingTx);
-    if (curTx !== inTxStr) {
-      localStorage.setItem('aio_komorebi_ledger_data_em', inTxStr);
-      emChanged = true;
-    }
-
-    // Ledger Budget Limits
-    const incomingBg = cloudData.em.ledger?.budgetLimits || {};
-    const curBg = localStorage.getItem('aio_komorebi_budget_limits_em');
-    const inBgStr = JSON.stringify(incomingBg);
-    if (curBg !== inBgStr) {
-      localStorage.setItem('aio_komorebi_budget_limits_em', inBgStr);
-      emChanged = true;
-    }
-
-    if (emChanged && currentUserProfile === 'em') {
-      activeProfileChanged = true;
-    }
-  }
-
-  if (anhChanged || emChanged) {
+  if (shouldRefreshUI) {
     isRemoteUpdating = true;
     try {
       loadFromStorage();
@@ -216,14 +217,17 @@ function applyRemoteCloudData(cloudData) {
         incInput.value = state.income === 0 ? '' : formatNumberForInput(state.income, suiteState.currency);
       }
       updateCurrencyDisplay();
+      if (typeof renderPresetChips === 'function') renderPresetChips();
       render();
       if (typeof renderNotesApp === 'function') renderNotesApp();
       if (typeof renderLedgerApp === 'function') renderLedgerApp();
       if (typeof renderCompound === 'function') renderCompound();
+    } catch (err) {
+      console.warn('UI refresh error on remote sync:', err);
     } finally {
       setTimeout(() => {
         isRemoteUpdating = false;
-      }, 500);
+      }, 300);
     }
 
     updateSyncStatusUI('live', 'Cloud Live');
@@ -233,6 +237,7 @@ function applyRemoteCloudData(cloudData) {
 function triggerCloudSyncDebounced(delay = 400, profileToPush = currentUserProfile) {
   if (isRemoteUpdating) return;
   if (!cloudDb) return;
+  if (!hasInitialCloudSyncLoaded) return;
   updateSyncStatusUI('syncing', 'Đang lưu...');
   clearTimeout(cloudSyncTimeout);
   cloudSyncTimeout = setTimeout(() => {
@@ -263,13 +268,14 @@ function pushProfileDataToCloud(profile) {
     let budgetObj = null;
     if (budgetRaw) {
       budgetObj = JSON.parse(budgetRaw);
+      budgetObj.categories = safeArray(budgetObj.categories);
     } else if (profile === currentUserProfile && typeof state !== 'undefined') {
       budgetObj = {
         income: state.income,
         currency: suiteState.currency,
         activePreset: state.activePreset,
         sortBy: state.sortBy,
-        categories: state.categories
+        categories: safeArray(state.categories)
       };
     }
 
@@ -281,12 +287,12 @@ function pushProfileDataToCloud(profile) {
         sortBy: 'default',
         categories: []
       },
-      notes: notesRaw ? JSON.parse(notesRaw) : [],
+      notes: notesRaw ? safeArray(JSON.parse(notesRaw)) : [],
       ledger: {
-        transactions: ledgerTxRaw ? JSON.parse(ledgerTxRaw) : [],
+        transactions: ledgerTxRaw ? safeArray(JSON.parse(ledgerTxRaw)) : [],
         budgetLimits: ledgerBgRaw ? JSON.parse(ledgerBgRaw) : {}
       },
-      updatedAt: Date.now(),
+      updatedAt: Number(localStorage.getItem(`aio_updatedAt_${profile}`) || Date.now()),
       updatedBy: CLIENT_SESSION_ID
     };
 
@@ -561,8 +567,9 @@ function saveToStorage() {
       currency: suiteState.currency,
       activePreset: state.activePreset,
       sortBy: state.sortBy,
-      categories: state.categories
+      categories: safeArray(state.categories)
     }));
+    markProfileLocallyUpdated(currentUserProfile);
     if (typeof triggerCloudSyncDebounced === 'function') {
       triggerCloudSyncDebounced(400, currentUserProfile);
     }
@@ -587,16 +594,13 @@ function loadFromStorage() {
       if (data.currency) suiteState.currency = data.currency;
       if (data.activePreset) state.activePreset = data.activePreset;
       if (data.sortBy) state.sortBy = data.sortBy;
-      if (Array.isArray(data.categories)) {
-        state.categories = data.categories;
-      }
+      state.categories = safeArray(data.categories);
     } else {
       state.income = 0;
       suiteState.currency = 'VND';
       state.activePreset = '50-30-20';
       state.sortBy = 'default';
       state.categories = [];
-      saveToStorage();
     }
   } catch (e) {
     console.warn('LocalStorage load failed:', e);
@@ -1667,14 +1671,9 @@ function loadNotesFromStorage() {
 
     if (raw) {
       const data = JSON.parse(raw);
-      if (Array.isArray(data)) {
-        notesState.notes = data;
-      } else {
-        notesState.notes = [];
-      }
+      notesState.notes = safeArray(data);
     } else {
       notesState.notes = [];
-      saveNotesToStorage();
     }
   } catch (e) {
     console.warn('Failed to load notes:', e);
@@ -1691,7 +1690,8 @@ function loadNotesFromStorage() {
 function saveNotesToStorage() {
   try {
     const key = getUserStorageKey(NOTES_STORAGE_KEY);
-    localStorage.setItem(key, JSON.stringify(notesState.notes));
+    localStorage.setItem(key, JSON.stringify(safeArray(notesState.notes)));
+    markProfileLocallyUpdated(currentUserProfile);
     if (typeof triggerCloudSyncDebounced === 'function') {
       triggerCloudSyncDebounced(500, currentUserProfile);
     }
@@ -2322,11 +2322,9 @@ function loadLedgerFromStorage() {
 
     if (raw) {
       const data = JSON.parse(raw);
-      if (Array.isArray(data)) ledgerState.transactions = data;
-      else ledgerState.transactions = [];
+      ledgerState.transactions = safeArray(data);
     } else {
       ledgerState.transactions = [];
-      saveLedgerToStorage();
     }
 
     let rawBudgets = localStorage.getItem(bgKey);
@@ -2346,8 +2344,9 @@ function saveLedgerToStorage() {
   try {
     const txKey = getUserStorageKey(LEDGER_STORAGE_KEY);
     const bgKey = getUserStorageKey(LEDGER_BUDGET_KEY);
-    localStorage.setItem(txKey, JSON.stringify(ledgerState.transactions));
-    localStorage.setItem(bgKey, JSON.stringify(ledgerState.budgetLimits));
+    localStorage.setItem(txKey, JSON.stringify(safeArray(ledgerState.transactions)));
+    localStorage.setItem(bgKey, JSON.stringify(ledgerState.budgetLimits || {}));
+    markProfileLocallyUpdated(currentUserProfile);
     if (typeof triggerCloudSyncDebounced === 'function') {
       triggerCloudSyncDebounced(400, currentUserProfile);
     }
@@ -3172,31 +3171,8 @@ function applyTheme(theme) {
   }
 }
 
-const AIO_CLEAN_VERSION = 'v5_clean_all';
-function enforceCleanSlate() {
-  if (localStorage.getItem('aio_clean_version') !== AIO_CLEAN_VERSION) {
-    const keys = [
-      'smartbudget_v1_data',
-      'smartbudget_v1_data_anh',
-      'smartbudget_v1_data_em',
-      'aio_apple_notes_data',
-      'aio_apple_notes_data_anh',
-      'aio_apple_notes_data_em',
-      'aio_komorebi_ledger_data',
-      'aio_komorebi_ledger_data_anh',
-      'aio_komorebi_ledger_data_em',
-      'aio_komorebi_budget_limits',
-      'aio_komorebi_budget_limits_anh',
-      'aio_komorebi_budget_limits_em'
-    ];
-    keys.forEach(k => localStorage.removeItem(k));
-    localStorage.setItem('aio_clean_version', AIO_CLEAN_VERSION);
-  }
-}
-
 // Initial Boot
 window.addEventListener('DOMContentLoaded', () => {
-  enforceCleanSlate();
   initThemeManager();
   initCoupleProfileSwitcher();
   loadFromStorage();
