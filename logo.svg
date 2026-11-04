@@ -1,70 +1,44 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
   <defs>
-    <!-- Background Gradient -->
+    <!-- Premium Luminous Tech Gradient -->
     <linearGradient id="aio-bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0e1424"/>
-      <stop offset="50%" stop-color="#0a0e1a"/>
-      <stop offset="100%" stop-color="#06080f"/>
+      <stop offset="0%" stop-color="#4338ca"/>
+      <stop offset="35%" stop-color="#4f46e5"/>
+      <stop offset="75%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#0ea5e9"/>
     </linearGradient>
 
-    <!-- Border Glow Gradient -->
-    <linearGradient id="aio-border" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.8"/>
-      <stop offset="30%" stop-color="#6366f1" stop-opacity="0.9"/>
-      <stop offset="65%" stop-color="#ec4899" stop-opacity="0.8"/>
-      <stop offset="100%" stop-color="#10b981" stop-opacity="0.9"/>
+    <!-- Top Specular Sheen (Subtle Glass Effect) -->
+    <linearGradient id="aio-sheen" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.28"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
     </linearGradient>
 
-    <!-- Letter A Gradient: Sky -> Indigo -> Purple -->
-    <linearGradient id="aio-grad-a" x1="0%" y1="100%" x2="70%" y2="0%">
-      <stop offset="0%" stop-color="#38bdf8"/>
-      <stop offset="45%" stop-color="#6366f1"/>
-      <stop offset="100%" stop-color="#8b5cf6"/>
-    </linearGradient>
-
-    <!-- Letter L1 Gradient: Purple -> Pink -> Rose -->
-    <linearGradient id="aio-grad-l1" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#8b5cf6"/>
-      <stop offset="50%" stop-color="#ec4899"/>
-      <stop offset="100%" stop-color="#f43f5e"/>
-    </linearGradient>
-
-    <!-- Letter L2 Gradient: Pink/Cyan -> Emerald -->
-    <linearGradient id="aio-grad-l2" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#06b6d4"/>
-      <stop offset="50%" stop-color="#10b981"/>
-      <stop offset="100%" stop-color="#34d399"/>
-    </linearGradient>
-
-    <!-- Drop Glow Filter -->
-    <filter id="aio-glow" x="-25%" y="-25%" width="150%" height="150%">
-      <feGaussianBlur stdDeviation="4" result="blur"/>
-      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    <!-- Refined Soft Drop Shadow for Letters -->
+    <filter id="aio-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2.5" stdDeviation="3.5" flood-color="#0f172a" flood-opacity="0.28"/>
     </filter>
   </defs>
 
   <!-- Squircle Base -->
-  <rect x="3" y="3" width="122" height="122" rx="28" fill="url(#aio-bg)" stroke="url(#aio-border)" stroke-width="2.5"/>
+  <rect x="4" y="4" width="120" height="120" rx="30" fill="url(#aio-bg)"/>
+  
+  <!-- Subtle Glass Highlight Arc -->
+  <path d="M 5 5 Q 64 2 123 5 C 123 38 90 44 64 44 C 38 44 5 38 5 5 Z" fill="url(#aio-sheen)"/>
+  
+  <!-- Outer Border Stroke -->
+  <rect x="4" y="4" width="120" height="120" rx="30" fill="none" stroke="rgba(255, 255, 255, 0.32)" stroke-width="2"/>
 
-  <!-- Subtle Atmospheric Neon Glow Behind Letters -->
-  <circle cx="36" cy="42" r="26" fill="#6366f1" opacity="0.24" filter="url(#aio-glow)"/>
-  <circle cx="77" cy="65" r="22" fill="#ec4899" opacity="0.2" filter="url(#aio-glow)"/>
-  <circle cx="105" cy="75" r="20" fill="#10b981" opacity="0.22" filter="url(#aio-glow)"/>
-
-  <!-- 'ALL' Monogram -->
-  <g stroke-linecap="round" stroke-linejoin="round">
+  <!-- 'ALL' Monogram in Pure Bright Luminous White -->
+  <g stroke="#ffffff" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" fill="none" filter="url(#aio-shadow)">
     <!-- Letter A -->
-    <path d="M 14 102 L 35.5 27 C 35.8 25.5 36.8 25.5 37.1 27 L 58 102" fill="none" stroke="url(#aio-grad-a)" stroke-width="11"/>
-    <path d="M 23.5 73 L 48.5 73" fill="none" stroke="url(#aio-grad-a)" stroke-width="9.5" stroke-linecap="round"/>
+    <path d="M 22 96 L 40 32 L 58 96"/>
+    <path d="M 28 73 L 52 73"/>
 
     <!-- Letter L 1 -->
-    <path d="M 68 26 L 68 101 C 68 101.6 68.4 102 69 102 L 86 102" fill="none" stroke="url(#aio-grad-l1)" stroke-width="11"/>
+    <path d="M 70 32 L 70 96 L 86 96"/>
 
     <!-- Letter L 2 -->
-    <path d="M 96 26 L 96 101 C 96 101.6 96.4 102 97 102 L 114 102" fill="none" stroke="url(#aio-grad-l2)" stroke-width="11"/>
+    <path d="M 93 32 L 93 96 L 109 96"/>
   </g>
-
-  <!-- Glowing Sparkle at Apex of A -->
-  <circle cx="36.3" cy="26" r="3.5" fill="#ffffff" filter="url(#aio-glow)"/>
-  <circle cx="36.3" cy="26" r="1.8" fill="#ffffff"/>
 </svg>
