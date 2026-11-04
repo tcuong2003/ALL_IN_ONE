@@ -140,16 +140,6 @@ function applyRemoteCloudData(cloudData) {
     // Ignore echo from this browser session
     if (remote.updatedBy === CLIENT_SESSION_ID) return;
 
-    const localUpdatedAt = Number(localStorage.getItem(`aio_updatedAt_${profile}`) || 0);
-    const remoteUpdatedAt = Number(remote.updatedAt || 0);
-
-    // Conflict resolution:
-    // If local has newer edits (within the last 2 minutes), keep local and push to cloud
-    if (localUpdatedAt > remoteUpdatedAt && (Date.now() - localUpdatedAt < 120000)) {
-      pushProfileDataToCloud(profile);
-      return;
-    }
-
     let profileModified = false;
 
     // 1. Budget
@@ -169,20 +159,54 @@ function applyRemoteCloudData(cloudData) {
       }
     }
 
-    // 2. Apple Notes
+    // 2. Apple Notes: Merge by ID
     const incomingNotes = safeArray(remote.notes);
-    const curNotes = localStorage.getItem(`aio_apple_notes_data_${profile}`);
-    const inNotesStr = JSON.stringify(incomingNotes);
-    if (curNotes !== inNotesStr) {
+    const curNotesRaw = localStorage.getItem(`aio_apple_notes_data_${profile}`);
+    const localNotes = safeArray(curNotesRaw ? JSON.parse(curNotesRaw) : []);
+    const deletedNotesKey = `aio_deleted_note_ids_${profile}`;
+    const deletedNoteIds = new Set(safeArray(JSON.parse(localStorage.getItem(deletedNotesKey) || '[]')));
+
+    const notesMap = new Map();
+    incomingNotes.forEach(n => {
+      if (n && n.id && !deletedNoteIds.has(n.id)) {
+        notesMap.set(n.id, n);
+      }
+    });
+    localNotes.forEach(n => {
+      if (n && n.id && !deletedNoteIds.has(n.id) && !notesMap.has(n.id)) {
+        notesMap.set(n.id, n);
+      }
+    });
+    const mergedNotes = Array.from(notesMap.values()).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    const inNotesStr = JSON.stringify(mergedNotes);
+    if (curNotesRaw !== inNotesStr) {
       localStorage.setItem(`aio_apple_notes_data_${profile}`, inNotesStr);
       profileModified = true;
     }
 
-    // 3. Ledger Transactions
+    // 3. Ledger Transactions: Merge by ID (Never lose remote transactions!)
     const incomingTx = safeArray(remote.ledger?.transactions);
-    const curTx = localStorage.getItem(`aio_komorebi_ledger_data_${profile}`);
-    const inTxStr = JSON.stringify(incomingTx);
-    if (curTx !== inTxStr) {
+    const curTxRaw = localStorage.getItem(`aio_komorebi_ledger_data_${profile}`);
+    const localTx = safeArray(curTxRaw ? JSON.parse(curTxRaw) : []);
+    const deletedTxKey = `aio_deleted_tx_ids_${profile}`;
+    const deletedTxIds = new Set(safeArray(JSON.parse(localStorage.getItem(deletedTxKey) || '[]')));
+
+    const txMap = new Map();
+    // Ingest all incoming remote transactions
+    incomingTx.forEach(t => {
+      if (t && t.id && !deletedTxIds.has(t.id)) {
+        txMap.set(t.id, t);
+      }
+    });
+    // Preserve any local un-synced transactions
+    localTx.forEach(t => {
+      if (t && t.id && !deletedTxIds.has(t.id) && !txMap.has(t.id)) {
+        txMap.set(t.id, t);
+      }
+    });
+    const mergedTx = Array.from(txMap.values()).sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.id || '').localeCompare(a.id || ''));
+    const inTxStr = JSON.stringify(mergedTx);
+    if (curTxRaw !== inTxStr) {
       localStorage.setItem(`aio_komorebi_ledger_data_${profile}`, inTxStr);
       profileModified = true;
     }
@@ -197,7 +221,8 @@ function applyRemoteCloudData(cloudData) {
     }
 
     if (profileModified) {
-      localStorage.setItem(`aio_updatedAt_${profile}`, remoteUpdatedAt ? remoteUpdatedAt.toString() : Date.now().toString());
+      const remoteUpdatedAt = Number(remote.updatedAt || Date.now());
+      localStorage.setItem(`aio_updatedAt_${profile}`, remoteUpdatedAt.toString());
       if (profile === 'anh') anhChanged = true;
       if (profile === 'em') emChanged = true;
     }
@@ -377,14 +402,7 @@ function updateCurrencyDisplay() {
 function switchUserProfile(newProfile) {
   if (currentUserProfile === newProfile) return;
 
-  // 1. Save all existing profile data & push to cloud
-  const oldProfile = currentUserProfile;
-  saveToStorage();
-  saveNotesToStorage();
-  saveLedgerToStorage();
-  pushProfileDataToCloud(oldProfile);
-
-  // 2. Change active profile
+  // Change active profile
   currentUserProfile = newProfile;
   suiteState.activeUser = newProfile;
   localStorage.setItem(AIO_STORAGE_KEY_USER_PROFILE, newProfile);
@@ -571,7 +589,7 @@ function saveToStorage() {
     }));
     markProfileLocallyUpdated(currentUserProfile);
     if (typeof triggerCloudSyncDebounced === 'function') {
-      triggerCloudSyncDebounced(400, currentUserProfile);
+      triggerCloudSyncDebounced(150, currentUserProfile);
     }
   } catch (e) {
     console.warn('LocalStorage save failed:', e);
@@ -747,8 +765,6 @@ function render() {
 
   // 7. Update count
   if (categoryCount) categoryCount.textContent = state.categories.length;
-
-  saveToStorage();
 }
 
 function getSortedCategories() {
@@ -916,6 +932,7 @@ function updateCategoryPercent(id, newPercent) {
   const cat = state.categories.find(c => c.id === id);
   if (cat) {
     cat.percent = Math.round(newPercent * 10) / 10;
+    saveToStorage();
     render();
   }
 }
@@ -1018,6 +1035,7 @@ function normalizeTo100() {
     maxCat.percent = Math.round((maxCat.percent + diff) * 10) / 10;
   }
 
+  saveToStorage();
   render();
   showToast('Đã tự động cân bằng toàn bộ các ô về vừa khớp 100%!');
 }
@@ -1037,6 +1055,7 @@ function autoFillRemaining() {
   };
 
   state.categories.push(newCat);
+  saveToStorage();
   render();
   showToast(`Đã thêm ô phân bổ nốt ${diff}% thành công!`);
 }
@@ -1136,6 +1155,7 @@ if (categoryForm) {
     }
 
     closeModal();
+    saveToStorage();
     render();
   });
 }
@@ -1146,6 +1166,7 @@ function deleteCategory(id) {
 
   if (confirm(`Bạn có chắc muốn xóa ô "${name}" không?`)) {
     state.categories = state.categories.filter(c => c.id !== id);
+    saveToStorage();
     render();
     showToast(`Đã xóa ô "${name}"!`);
   }
@@ -1160,6 +1181,7 @@ function loadPreset(presetKey) {
       chip.classList.toggle('active', chip.dataset.preset === presetKey);
     });
 
+    saveToStorage();
     render();
     showToast(`Đã áp dụng công thức ${presetKey}!`);
   }
@@ -1441,6 +1463,7 @@ function setupEventListeners() {
         input.setSelectionRange(newCursorPos, newCursorPos);
       }
 
+      saveToStorage();
       render();
     });
   }
@@ -1448,6 +1471,7 @@ function setupEventListeners() {
   if (btnClearIncome) {
     btnClearIncome.addEventListener('click', () => {
       state.income = 0;
+      saveToStorage();
       render();
       if (incomeInput) incomeInput.focus();
     });
@@ -1460,6 +1484,7 @@ function setupEventListeners() {
       state.income = val;
       quickBtns.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
+      saveToStorage();
       render();
     });
   });
@@ -1468,6 +1493,7 @@ function setupEventListeners() {
     btn.addEventListener('click', () => {
       const add = parseInt(btn.dataset.add, 10);
       state.income += add;
+      saveToStorage();
       render();
     });
   });
@@ -1481,6 +1507,7 @@ function setupEventListeners() {
       if (incomeInput) {
         incomeInput.value = formatNumberForInput(state.income, suiteState.currency);
       }
+      saveToStorage();
       render();
       renderCompound();
     });
@@ -1495,6 +1522,7 @@ function setupEventListeners() {
   if (sortSelect) {
     sortSelect.addEventListener('change', (e) => {
       state.sortBy = e.target.value;
+      saveToStorage();
       renderCategoryCards();
     });
   }
@@ -2018,6 +2046,10 @@ function deleteActiveNote() {
   const noteTitle = note.title || 'ghi chú này';
   if (confirm(`Bạn có chắc chắn muốn xóa "${noteTitle}" không?`)) {
     notesState.notes = notesState.notes.filter(n => n.id !== note.id);
+    const deletedNotesKey = `aio_deleted_note_ids_${currentUserProfile}`;
+    const deletedNoteIds = safeArray(JSON.parse(localStorage.getItem(deletedNotesKey) || '[]'));
+    deletedNoteIds.push(note.id);
+    localStorage.setItem(deletedNotesKey, JSON.stringify(deletedNoteIds));
     
     if (notesState.notes.length > 0) {
       notesState.activeNoteId = notesState.notes[0].id;
@@ -2348,7 +2380,7 @@ function saveLedgerToStorage() {
     localStorage.setItem(bgKey, JSON.stringify(ledgerState.budgetLimits || {}));
     markProfileLocallyUpdated(currentUserProfile);
     if (typeof triggerCloudSyncDebounced === 'function') {
-      triggerCloudSyncDebounced(400, currentUserProfile);
+      triggerCloudSyncDebounced(150, currentUserProfile);
     }
   } catch (e) {
     console.warn('Ledger save failed:', e);
@@ -2584,6 +2616,10 @@ function renderSelectedDayTransactions() {
 function deleteTransaction(id) {
   if (confirm('Bạn có muốn xóa khoản thu/chi này không?')) {
     ledgerState.transactions = ledgerState.transactions.filter(t => t.id !== id);
+    const deletedKey = `aio_deleted_tx_ids_${currentUserProfile}`;
+    const deletedIds = safeArray(JSON.parse(localStorage.getItem(deletedKey) || '[]'));
+    deletedIds.push(id);
+    localStorage.setItem(deletedKey, JSON.stringify(deletedIds));
     saveLedgerToStorage();
     renderLedgerCalendar();
     showToast('Đã xóa giao dịch thành công!');
