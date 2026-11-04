@@ -18,6 +18,15 @@
           "value": "image/svg+xml"
         }
       ]
+    },
+    {
+      "source": "/(.*)\\.ico",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "image/x-icon"
+        }
+      ]
     }
   ]
 }
