@@ -2719,11 +2719,14 @@ function submitNewTransaction() {
   ledgerState.transactions.push(newTx);
   saveLedgerToStorage();
 
-  if (amountInput) amountInput.value = '';
+  if (amountInput) {
+    amountInput.value = '';
+    amountInput.focus();
+  }
   if (noteInput) noteInput.value = '';
 
   showToast(`Đã thêm ${ledgerState.entryType === 'income' ? 'khoản thu' : 'khoản chi'} ${formatMoney(amount)} thành công!`);
-  switchLedgerSubTab('calendar');
+  // Giữ nguyên giao diện 'Nhập vào' để người dùng tiếp tục nhập nhanh các khoản tiếp theo
 }
 
 // 3. REPORTS VIEW LOGIC
@@ -3101,6 +3104,16 @@ function initKomorebiLedger() {
       if (entryAmountInput) {
         entryAmountInput.value = '';
         entryAmountInput.focus();
+      }
+    });
+  }
+
+  const entryNoteInput = document.getElementById('entry-note-input');
+  if (entryNoteInput) {
+    entryNoteInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        submitNewTransaction();
       }
     });
   }
