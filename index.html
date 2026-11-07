@@ -16,7 +16,7 @@
   <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png?v=3.3">
   <link rel="apple-touch-icon" href="favicon.png?v=3.3">
   
-  <link rel="stylesheet" href="style.css?v=3.2">
+  <link rel="stylesheet" href="style.css?v=3.5">
   <script>
     (function() {
       const savedTheme = localStorage.getItem('aio_suite_theme_mode') || 'light';
@@ -645,13 +645,13 @@
             <!-- Calendar Matrix -->
             <div class="komo-calendar-card">
               <div class="komo-calendar-weekdays">
-                <span class="weekday cn">CN</span>
                 <span class="weekday">T2</span>
                 <span class="weekday">T3</span>
                 <span class="weekday">T4</span>
                 <span class="weekday">T5</span>
                 <span class="weekday">T6</span>
                 <span class="weekday t7">T7</span>
+                <span class="weekday cn">CN</span>
               </div>
               <div class="komo-calendar-grid" id="calendar-days-grid">
                 <!-- 35-42 days rendered dynamically by JS -->
@@ -1084,11 +1084,24 @@
       <span class="toast-icon">✓</span>
       <span class="toast-msg" id="toast-msg">Đã cập nhật thành công!</span>
     </div>
+
+    <!-- Custom Centered Floating Dialog Modal (Confirm & Alert UI) -->
+    <div id="aio-confirm-modal" class="aio-confirm-overlay" style="display: none;">
+      <div class="aio-confirm-card" role="dialog" aria-modal="true" aria-labelledby="aio-confirm-title">
+        <div class="aio-confirm-icon-box" id="aio-confirm-icon">🗑️</div>
+        <h3 class="aio-confirm-title" id="aio-confirm-title">Xác nhận</h3>
+        <p class="aio-confirm-message" id="aio-confirm-message">Bạn có chắc chắn muốn thực hiện thao tác này?</p>
+        <div class="aio-confirm-actions">
+          <button type="button" class="btn-aio-dialog btn-aio-cancel" id="aio-confirm-cancel">Hủy bỏ</button>
+          <button type="button" class="btn-aio-dialog btn-aio-ok" id="aio-confirm-ok">Đồng ý</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Firebase Realtime Database Cloud Sync SDK (Google) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
-  <script src="app.js?v=3.4"></script>
+  <script src="app.js?v=3.5"></script>
 </body>
 </html>

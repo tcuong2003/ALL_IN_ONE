@@ -538,6 +538,93 @@ function showToast(message) {
   }, 2600);
 }
 
+// Custom Centered Floating Confirm & Alert Dialog (Sync UI, No Native Alert/Confirm)
+function showConfirmModal({
+  title = 'Xác nhận',
+  message = 'Bạn có chắc chắn muốn thực hiện hành động này?',
+  confirmText = 'Đồng ý',
+  cancelText = 'Hủy bỏ',
+  type = 'danger', // 'danger' | 'warning' | 'primary'
+  icon = '🗑️'
+} = {}) {
+  return new Promise((resolve) => {
+    const modal = document.getElementById('aio-confirm-modal');
+    if (!modal) {
+      resolve(window.confirm(message));
+      return;
+    }
+
+    const titleEl = document.getElementById('aio-confirm-title');
+    const msgEl = document.getElementById('aio-confirm-message');
+    const iconEl = document.getElementById('aio-confirm-icon');
+    const okBtn = document.getElementById('aio-confirm-ok');
+    const cancelBtn = document.getElementById('aio-confirm-cancel');
+
+    if (titleEl) titleEl.textContent = title;
+    if (msgEl) msgEl.textContent = message;
+    if (iconEl) {
+      iconEl.innerHTML = icon;
+      iconEl.className = 'aio-confirm-icon-box ' + (type === 'danger' ? 'is-danger' : type === 'warning' ? 'is-warning' : 'is-primary');
+    }
+    if (okBtn) {
+      okBtn.textContent = confirmText;
+      okBtn.className = 'btn-aio-dialog btn-aio-ok ' + (type === 'danger' ? 'btn-danger' : 'btn-primary');
+    }
+    if (cancelBtn) {
+      cancelBtn.textContent = cancelText;
+      cancelBtn.style.display = cancelText ? 'inline-flex' : 'none';
+    }
+
+    modal.style.display = 'flex';
+    if (okBtn) okBtn.focus();
+
+    function cleanUp(result) {
+      modal.style.display = 'none';
+      window.removeEventListener('keydown', handleKey);
+      modal.removeEventListener('click', handleBackdrop);
+      if (okBtn) okBtn.removeEventListener('click', handleOk);
+      if (cancelBtn) cancelBtn.removeEventListener('click', handleCancel);
+      resolve(result);
+    }
+
+    function handleOk() { cleanUp(true); }
+    function handleCancel() { cleanUp(false); }
+    function handleBackdrop(e) {
+      if (e.target === modal) cleanUp(false);
+    }
+    function handleKey(e) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        cleanUp(false);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        cleanUp(true);
+      }
+    }
+
+    if (okBtn) okBtn.addEventListener('click', handleOk);
+    if (cancelBtn) cancelBtn.addEventListener('click', handleCancel);
+    modal.addEventListener('click', handleBackdrop);
+    window.addEventListener('keydown', handleKey);
+  });
+}
+
+function showAlertModal({
+  title = 'Thông báo',
+  message = '',
+  buttonText = 'Đã hiểu',
+  icon = '⚠️'
+} = {}) {
+  return showConfirmModal({
+    title,
+    message,
+    confirmText: buttonText,
+    cancelText: null,
+    type: 'warning',
+    icon
+  });
+}
+
 // =============================================================================
 // MODULE 1: SMARTBUDGET 100% (LOGIC & STATE)
 // =============================================================================
@@ -1160,16 +1247,24 @@ if (categoryForm) {
   });
 }
 
-function deleteCategory(id) {
+async function deleteCategory(id) {
   const cat = state.categories.find(c => c.id === id);
   const name = cat ? cat.name : 'khoản chi';
 
-  if (confirm(`Bạn có chắc muốn xóa ô "${name}" không?`)) {
-    state.categories = state.categories.filter(c => c.id !== id);
-    saveToStorage();
-    render();
-    showToast(`Đã xóa ô "${name}"!`);
-  }
+  const confirmed = await showConfirmModal({
+    title: 'Xóa khoản phân bổ',
+    message: `Bạn có chắc chắn muốn xóa ô "${name}" không?`,
+    confirmText: 'Xóa ô này',
+    cancelText: 'Hủy bỏ',
+    type: 'danger',
+    icon: '🗑️'
+  });
+  if (!confirmed) return;
+
+  state.categories = state.categories.filter(c => c.id !== id);
+  saveToStorage();
+  render();
+  showToast(`Đã xóa ô "${name}"!`);
 }
 
 function loadPreset(presetKey) {
@@ -1558,18 +1653,26 @@ function setupEventListeners() {
 
   if (btnExportText) btnExportText.addEventListener('click', copyBreakdownToClipboard);
   if (btnReset) {
-    btnReset.addEventListener('click', () => {
+    btnReset.addEventListener('click', async () => {
       const userLabel = currentUserProfile === 'anh' ? 'của Anh' : 'của Em';
-      if (confirm(`Bạn có muốn xóa sạch toàn bộ cài đặt phân bổ ${userLabel} không?`)) {
-        state.income = 0;
-        suiteState.currency = 'VND';
-        state.activePreset = '50-30-20';
-        state.sortBy = 'default';
-        state.categories = [];
-        saveToStorage();
-        render();
-        showToast(`Đã làm trống dữ liệu ${userLabel} thành công!`);
-      }
+      const confirmed = await showConfirmModal({
+        title: 'Đặt lại ngân sách',
+        message: `Bạn có muốn xóa sạch toàn bộ cài đặt phân bổ ${userLabel} không? Hành động này sẽ đưa bảng phân bổ về trống.`,
+        confirmText: 'Xóa sạch',
+        cancelText: 'Hủy bỏ',
+        type: 'danger',
+        icon: '⚠️'
+      });
+      if (!confirmed) return;
+
+      state.income = 0;
+      suiteState.currency = 'VND';
+      state.activePreset = '50-30-20';
+      state.sortBy = 'default';
+      state.categories = [];
+      saveToStorage();
+      render();
+      showToast(`Đã làm trống dữ liệu ${userLabel} thành công!`);
     });
   }
 
@@ -2039,32 +2142,40 @@ function createNewNote() {
   showToast('Đã tạo ghi chú mới!');
 }
 
-function deleteActiveNote() {
+async function deleteActiveNote() {
   const note = notesState.notes.find(n => n.id === notesState.activeNoteId);
   if (!note) return;
 
   const noteTitle = note.title || 'ghi chú này';
-  if (confirm(`Bạn có chắc chắn muốn xóa "${noteTitle}" không?`)) {
-    notesState.notes = notesState.notes.filter(n => n.id !== note.id);
-    const deletedNotesKey = `aio_deleted_note_ids_${currentUserProfile}`;
-    const deletedNoteIds = safeArray(JSON.parse(localStorage.getItem(deletedNotesKey) || '[]'));
-    deletedNoteIds.push(note.id);
-    localStorage.setItem(deletedNotesKey, JSON.stringify(deletedNoteIds));
-    
-    if (notesState.notes.length > 0) {
-      notesState.activeNoteId = notesState.notes[0].id;
-    } else {
-      notesState.activeNoteId = null;
-    }
+  const confirmed = await showConfirmModal({
+    title: 'Xóa ghi chú',
+    message: `Bạn có chắc chắn muốn xóa "${noteTitle}" không?`,
+    confirmText: 'Xóa ghi chú',
+    cancelText: 'Hủy bỏ',
+    type: 'danger',
+    icon: '🗑️'
+  });
+  if (!confirmed) return;
 
-    saveNotesToStorage();
-    renderNotesApp();
-    showToast('Đã xóa ghi chú thành công!');
+  notesState.notes = notesState.notes.filter(n => n.id !== note.id);
+  const deletedNotesKey = `aio_deleted_note_ids_${currentUserProfile}`;
+  const deletedNoteIds = safeArray(JSON.parse(localStorage.getItem(deletedNotesKey) || '[]'));
+  deletedNoteIds.push(note.id);
+  localStorage.setItem(deletedNotesKey, JSON.stringify(deletedNoteIds));
+  
+  if (notesState.notes.length > 0) {
+    notesState.activeNoteId = notesState.notes[0].id;
+  } else {
+    notesState.activeNoteId = null;
+  }
 
-    const appEl = document.getElementById('apple-notes-app');
-    if (appEl && !notesState.activeNoteId) {
-      appEl.classList.remove('mobile-show-editor');
-    }
+  saveNotesToStorage();
+  renderNotesApp();
+  showToast('Đã xóa ghi chú thành công!');
+
+  const appEl = document.getElementById('apple-notes-app');
+  if (appEl && !notesState.activeNoteId) {
+    appEl.classList.remove('mobile-show-editor');
   }
 }
 
@@ -2432,7 +2543,8 @@ function renderLedgerCalendar() {
   const firstDay = new Date(y, m, 1);
   const lastDay = new Date(y, m + 1, 0);
   const totalDays = lastDay.getDate();
-  const startDayOfWeek = firstDay.getDay();
+  // Thứ 2 là cột 0 (T2), Chủ Nhật là cột 6 (CN) cạnh Thứ 7
+  const startOffset = (firstDay.getDay() + 6) % 7;
 
   if (monthLabel) {
     monthLabel.textContent = `${String(m + 1).padStart(2, '0')}/${y}`;
@@ -2444,7 +2556,7 @@ function renderLedgerCalendar() {
   daysGrid.innerHTML = '';
 
   const prevLastDay = new Date(y, m, 0).getDate();
-  for (let i = startDayOfWeek - 1; i >= 0; i--) {
+  for (let i = startOffset - 1; i >= 0; i--) {
     const dayNum = prevLastDay - i;
     const cell = document.createElement('div');
     cell.className = 'cal-day-cell other-month';
@@ -2503,7 +2615,7 @@ function renderLedgerCalendar() {
     daysGrid.appendChild(cell);
   }
 
-  const remainingCells = 42 - (startDayOfWeek + totalDays);
+  const remainingCells = 42 - (startOffset + totalDays);
   const endPadding = remainingCells >= 7 ? remainingCells - 7 : remainingCells;
   for (let nextD = 1; nextD <= endPadding; nextD++) {
     const cell = document.createElement('div');
@@ -2613,17 +2725,25 @@ function renderSelectedDayTransactions() {
   }
 }
 
-function deleteTransaction(id) {
-  if (confirm('Bạn có muốn xóa khoản thu/chi này không?')) {
-    ledgerState.transactions = ledgerState.transactions.filter(t => t.id !== id);
-    const deletedKey = `aio_deleted_tx_ids_${currentUserProfile}`;
-    const deletedIds = safeArray(JSON.parse(localStorage.getItem(deletedKey) || '[]'));
-    deletedIds.push(id);
-    localStorage.setItem(deletedKey, JSON.stringify(deletedIds));
-    saveLedgerToStorage();
-    renderLedgerCalendar();
-    showToast('Đã xóa giao dịch thành công!');
-  }
+async function deleteTransaction(id) {
+  const confirmed = await showConfirmModal({
+    title: 'Xóa giao dịch',
+    message: 'Bạn có chắc chắn muốn xóa khoản thu/chi này không?',
+    confirmText: 'Xóa giao dịch',
+    cancelText: 'Hủy bỏ',
+    type: 'danger',
+    icon: '🗑️'
+  });
+  if (!confirmed) return;
+
+  ledgerState.transactions = ledgerState.transactions.filter(t => t.id !== id);
+  const deletedKey = `aio_deleted_tx_ids_${currentUserProfile}`;
+  const deletedIds = safeArray(JSON.parse(localStorage.getItem(deletedKey) || '[]'));
+  deletedIds.push(id);
+  localStorage.setItem(deletedKey, JSON.stringify(deletedIds));
+  saveLedgerToStorage();
+  renderLedgerCalendar();
+  showToast('Đã xóa giao dịch thành công!');
 }
 
 // 2. QUICK ENTRY VIEW LOGIC
@@ -2695,14 +2815,19 @@ function updateEntryDateDisplay() {
   display.textContent = `${day}/${month}/${year} (${dayName})`;
 }
 
-function submitNewTransaction() {
+async function submitNewTransaction() {
   const amountInput = document.getElementById('entry-amount-input');
   const noteInput = document.getElementById('entry-note-input');
   const amount = parseMoneyInput(amountInput ? amountInput.value : '0');
   const note = noteInput ? noteInput.value.trim() : '';
 
   if (amount <= 0) {
-    alert('Vui lòng nhập số tiền hợp lệ lớn hơn 0!');
+    await showAlertModal({
+      title: 'Số tiền chưa hợp lệ',
+      message: 'Vui lòng nhập số tiền lớn hơn 0 trước khi lưu khoản chi/thu!',
+      buttonText: 'Đã hiểu',
+      icon: '⚠️'
+    });
     if (amountInput) amountInput.focus();
     return;
   }
