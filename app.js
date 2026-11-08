@@ -1985,10 +1985,6 @@ function createNoteListItemElement(note) {
       <span class="note-item-date">${formatNoteDate(note.updatedAt)}</span>
       <span class="note-item-snippet">${escapeHtml(snippet)}</span>
     </div>
-    <div class="note-item-badge">
-      <span class="badge-icon">${badge.icon}</span>
-      <span>${badge.name}</span>
-    </div>
   `;
 
   item.addEventListener('click', () => {

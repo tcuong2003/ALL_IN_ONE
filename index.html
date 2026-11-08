@@ -23,7 +23,7 @@
   <meta name="apple-mobile-web-app-title" content="All In One">
   <meta name="theme-color" content="#101522">
   
-  <link rel="stylesheet" href="style.css?v=3.8">
+  <link rel="stylesheet" href="style.css?v=3.9">
   <script>
     (function() {
       const savedTheme = localStorage.getItem('aio_suite_theme_mode') || 'light';
@@ -91,14 +91,6 @@
             <button type="button" id="btn-quick-reminder-header" class="btn btn-ghost" title="Cài đặt giờ nhắc nhở chi tiêu trên điện thoại">
               <span>🔔</span>
               <span class="btn-text-hide-mobile">Nhắc nhở</span>
-            </button>
-            <button id="btn-export-text" class="btn btn-secondary" title="Sao chép bảng phân bổ ra văn bản">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-              <span>Sao chép</span>
-            </button>
-            <button id="btn-reset" class="btn btn-ghost" title="Đặt lại về mặc định">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
-              <span>Đặt lại</span>
             </button>
           </div>
         </div>
@@ -201,7 +193,6 @@
               <div class="segmented-bar" id="rule-progress-bar">
                 <!-- Dynamically populated segments -->
               </div>
-              <div class="bar-marker marker-100" title="Mốc 100%">100%</div>
             </div>
           </div>
         </section>
@@ -491,45 +482,14 @@
       <div id="module-notes" class="aio-module" style="display: none;">
         <div class="apple-notes-app" id="apple-notes-app">
           
-          <!-- Column 1: Sidebar Folders Navigation -->
-          <aside class="notes-sidebar" id="notes-sidebar">
-            <div class="notes-sidebar-header">
-              <span class="sidebar-app-title">
-                <span class="apple-brand-icon">📝</span> Ghi Chú
-              </span>
-              <button type="button" class="btn-icon-gold" id="btn-sidebar-new-note" title="Soạn ghi chú mới">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-              </button>
-            </div>
-
-            <div class="notes-folders-list">
-              <span class="folder-section-label">DỰ ÁN & DANH MỤC</span>
-              <button type="button" class="folder-item active" data-folder="all">
-                <span class="folder-icon">📒</span>
-                <span class="folder-name">Tất cả ghi chú</span>
-                <span class="folder-count" id="count-all">0</span>
-              </button>
-              <button type="button" class="folder-item" data-folder="budget">
-                <span class="folder-icon">⚡</span>
-                <span class="folder-name">SmartBudget</span>
-                <span class="folder-count" id="count-budget">0</span>
-              </button>
-              <button type="button" class="folder-item" data-folder="compound">
-                <span class="folder-icon">📈</span>
-                <span class="folder-name">Lãi Kép & Đầu Tư</span>
-                <span class="folder-count" id="count-compound">0</span>
-              </button>
-              <button type="button" class="folder-item" data-folder="personal">
-                <span class="folder-icon">💡</span>
-                <span class="folder-name">Ý tưởng & Kế hoạch</span>
-                <span class="folder-count" id="count-personal">0</span>
-              </button>
-            </div>
-          </aside>
-
-          <!-- Column 2: Notes List with Search Bar -->
+          <!-- Column: Notes List with Search Bar -->
           <section class="notes-list-col" id="notes-list-col">
             <div class="notes-list-header">
+              <div class="notes-title-bar">
+                <span class="sidebar-app-title">
+                  <span class="apple-brand-icon">📝</span> Ghi Chú
+                </span>
+              </div>
               <div class="notes-search-wrapper">
                 <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                 <input type="text" id="notes-search-input" placeholder="Tìm kiếm ghi chú..." autocomplete="off">
@@ -550,7 +510,7 @@
             </div>
           </section>
 
-          <!-- Column 3: Apple Notes Editor Pane -->
+          <!-- Column: Apple Notes Editor Pane -->
           <main class="notes-editor-pane" id="notes-editor-pane">
             <div class="editor-toolbar">
               <div class="toolbar-left">
@@ -560,23 +520,26 @@
                   <span>Ghi chú</span>
                 </button>
                 
-                <div class="note-project-tag-wrap">
-                  <label for="note-folder-select" class="sr-only">Dự án</label>
-                  <select class="note-folder-select" id="note-folder-select" title="Gán vào dự án">
-                    <option value="all">📁 Chung</option>
-                    <option value="budget">⚡ SmartBudget</option>
-                    <option value="compound">📈 Lãi Kép & Đầu Tư</option>
-                    <option value="personal">💡 Ý tưởng</option>
-                  </select>
+                <!-- Formatting Tools (Moved to Top Toolbar) -->
+                <div class="editor-formatting-group">
+                  <button type="button" class="editor-tool-btn" id="chip-insert-check" title="Việc cần làm (Checklist)">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+                  </button>
+                  <button type="button" class="editor-tool-btn" id="chip-insert-bullet" title="Gạch đầu dòng (Bullet list)">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><circle cx="3.5" cy="6" r="1.5" fill="currentColor"></circle><circle cx="3.5" cy="12" r="1.5" fill="currentColor"></circle><circle cx="3.5" cy="18" r="1.5" fill="currentColor"></circle></svg>
+                  </button>
+                  <button type="button" class="editor-tool-btn editor-tool-text-btn" id="chip-insert-h2" title="Tiêu đề H2">
+                    <span>H2</span>
+                  </button>
+                  <button type="button" class="editor-tool-btn editor-tool-text-btn" id="chip-insert-budget" title="Chèn chi tiêu SmartBudget hiện tại">
+                    <span>⚡</span>
+                  </button>
                 </div>
               </div>
 
               <div class="toolbar-right">
                 <button type="button" class="editor-tool-btn" id="btn-toggle-pin" title="Ghim lên đầu">
                   <span id="pin-icon">📌</span>
-                </button>
-                <button type="button" class="editor-tool-btn" id="btn-add-checklist" title="Thêm việc cần làm (Checklist)">
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
                 </button>
                 <button type="button" class="editor-tool-btn" id="btn-copy-note" title="Sao chép nội dung">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
@@ -592,14 +555,6 @@
               <div class="note-timestamp" id="note-timestamp">--:--</div>
               <input type="text" class="note-title-input" id="note-title-input" placeholder="Tiêu đề ghi chú...">
               
-              <!-- Quick Insert Bar -->
-              <div class="note-quick-format">
-                <button type="button" class="format-chip" id="chip-insert-check">☑️ Việc cần làm</button>
-                <button type="button" class="format-chip" id="chip-insert-bullet">• Gạch đầu dòng</button>
-                <button type="button" class="format-chip" id="chip-insert-h2">H2 Tiêu đề</button>
-                <button type="button" class="format-chip" id="chip-insert-budget">⚡ Chèn chi tiêu hiện tại</button>
-              </div>
-
               <!-- ContentEditable Body -->
               <div class="note-body-editor" id="note-body-editor" contenteditable="true" spellcheck="false" placeholder="Nhập nội dung ghi chú ở đây..."></div>
               
@@ -1207,6 +1162,6 @@
   <!-- Firebase Realtime Database Cloud Sync SDK (Google) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
-  <script src="app.js?v=3.8"></script>
+  <script src="app.js?v=3.9"></script>
 </body>
 </html>

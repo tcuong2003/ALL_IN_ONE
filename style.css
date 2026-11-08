@@ -2736,7 +2736,7 @@ body[data-tab="hub"] .badge-tag {
 
 .apple-notes-app {
   display: grid;
-  grid-template-columns: 220px 320px 1fr;
+  grid-template-columns: 340px 1fr;
   height: calc(100vh - 160px);
   min-height: 640px;
   max-height: 840px;
@@ -2883,6 +2883,13 @@ body[data-tab="hub"] .badge-tag {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.notes-title-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 2px 4px 2px;
 }
 
 .notes-search-wrapper {
@@ -3141,6 +3148,19 @@ body[data-tab="hub"] .badge-tag {
   border-radius: 6px;
   outline: none;
   cursor: pointer;
+}
+
+.editor-formatting-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.editor-tool-text-btn {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 0.88rem;
+  letter-spacing: -0.02em;
 }
 
 .toolbar-right {
