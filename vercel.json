@@ -1,11 +1,5 @@
 {
   "cleanUrls": true,
-  "functions": {
-    "api/*.js": {
-      "memory": 1024,
-      "maxDuration": 10
-    }
-  },
   "headers": [
     {
       "source": "/(.*)",
