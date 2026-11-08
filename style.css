@@ -5580,6 +5580,28 @@ body[data-tab="hub"] .badge-tag {
   box-shadow: 0 25px 60px -10px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.1);
 }
 
+.aio-reminder-modal-card {
+  max-width: 440px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 24px 22px;
+}
+
+.aio-reminder-modal-card .aio-confirm-icon-box {
+  margin: 0 auto 6px auto;
+}
+
+.aio-reminder-modal-card .aio-confirm-title,
+.aio-reminder-modal-card .aio-confirm-message {
+  text-align: center;
+}
+
+.aio-reminder-modal-card .reminder-section-card {
+  text-align: left;
+}
+
 .aio-confirm-icon-box {
   width: 56px;
   height: 56px;
@@ -5995,6 +6017,11 @@ body[data-tab="hub"] .badge-tag {
   flex-direction: column;
   gap: 10px;
   margin-top: 6px;
+}
+
+.reminder-action-buttons .btn-aio-dialog {
+  width: 100%;
+  padding: 11px 18px;
 }
 
 .btn-reminder-save {

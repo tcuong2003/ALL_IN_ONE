@@ -2628,7 +2628,7 @@ function switchLedgerSubTab(tabName) {
     btn.classList.toggle('active', btn.dataset.subtab === tabName);
   });
 
-  const views = ['calendar', 'input', 'report', 'budget', 'reminder'];
+  const views = ['calendar', 'input', 'report', 'budget'];
   views.forEach(v => {
     const el = document.getElementById(`komo-view-${v}`);
     if (el) {
@@ -2646,10 +2646,6 @@ function switchLedgerSubTab(tabName) {
     renderLedgerReports();
   } else if (tabName === 'budget') {
     renderLedgerBudget();
-  } else if (tabName === 'reminder') {
-    if (typeof updateReminderUIState === 'function' && updateReminderUIState) {
-      updateReminderUIState();
-    }
   }
 }
 
@@ -3497,8 +3493,9 @@ if ('serviceWorker' in navigator) {
 let updateReminderUIState = null;
 
 function initReminderFeature() {
-  const reminderView = document.getElementById('komo-view-reminder');
+  const reminderModal = document.getElementById('aio-reminder-modal');
   const btnOpenHeader = document.getElementById('btn-quick-reminder-header');
+  const btnClose = document.getElementById('btn-close-reminder');
   const btnSave = document.getElementById('btn-save-reminder');
   const btnTestPush = document.getElementById('btn-test-push');
   const timeInput = document.getElementById('reminder-time-input');
@@ -3509,7 +3506,18 @@ function initReminderFeature() {
   const previewText = document.getElementById('reminder-preview-text');
   const presetBtns = document.querySelectorAll('.reminder-preset-btn');
 
-  if (!reminderView) return;
+  if (!reminderModal) return;
+
+  function openReminderModal() {
+    if (typeof updateReminderUIState === 'function') {
+      updateReminderUIState();
+    }
+    reminderModal.style.display = 'flex';
+  }
+
+  function closeReminderModal() {
+    reminderModal.style.display = 'none';
+  }
 
   // Load saved reminder time from localStorage
   const savedTime = localStorage.getItem('aio_reminder_time') || '21:00';
@@ -3599,17 +3607,33 @@ function initReminderFeature() {
     });
   }
 
-  // Header quick button: navigate smoothly to Ledger -> Reminder tab
+  // Header quick button: open reminder modal
   if (btnOpenHeader) {
     btnOpenHeader.addEventListener('click', () => {
-      switchModule('ledger');
-      switchLedgerSubTab('reminder');
-      const card = document.querySelector('.komo-reminder-card');
-      if (card) {
-        card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
+      openReminderModal();
     });
   }
+
+  // Close modal button
+  if (btnClose) {
+    btnClose.addEventListener('click', () => {
+      closeReminderModal();
+    });
+  }
+
+  // Backdrop click to close
+  reminderModal.addEventListener('click', (e) => {
+    if (e.target === reminderModal) {
+      closeReminderModal();
+    }
+  });
+
+  // Escape key to close
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && reminderModal.style.display === 'flex') {
+      closeReminderModal();
+    }
+  });
 
   // Save & Activate Push
   if (btnSave) {
@@ -3780,7 +3804,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
   if (targetTab && ['budget', 'compound', 'hub', 'notes', 'ledger'].includes(targetTab)) {
     switchModule(targetTab);
-    if (targetTab === 'ledger' && targetSubtab && ['calendar', 'input', 'report', 'budget', 'reminder'].includes(targetSubtab)) {
+    if (targetTab === 'ledger' && targetSubtab && ['calendar', 'input', 'report', 'budget'].includes(targetSubtab)) {
       switchLedgerSubTab(targetSubtab);
     }
   } else {
