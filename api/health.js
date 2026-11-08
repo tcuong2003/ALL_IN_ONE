@@ -1,16 +1,7 @@
-export default function handler(req, res) {
-  let webpushStatus = 'ok';
-  let webpushError = null;
-  try {
-    const webpush = require('web-push');
-  } catch (e) {
-    webpushStatus = 'failed';
-    webpushError = e.message;
-  }
+module.exports = (req, res) => {
   res.status(200).json({
     ok: true,
-    node: process.version,
-    webpushStatus,
-    webpushError
+    message: 'All In One Serverless API is working!',
+    time: new Date().toISOString()
   });
-}
+};
