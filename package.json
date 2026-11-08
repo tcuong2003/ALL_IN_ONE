@@ -1,8 +1,8 @@
 {
-  "name": "aio-api",
+  "name": "all-in-one",
   "version": "1.0.0",
   "private": true,
   "dependencies": {
-    "web-push": "^4.0.0"
+    "web-push": "^3.6.7"
   }
 }
