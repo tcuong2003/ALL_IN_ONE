@@ -3560,32 +3560,27 @@ function initReminderFeature() {
 
       try {
         const reg = await navigator.serviceWorker.ready;
-        const sub = await reg.pushManager.getSubscription();
-
-        if (!sub) {
-          throw new Error('Chưa tìm thấy đăng ký thông báo trên máy. Vui lòng bấm "Lưu & Bật thông báo" trước.');
-        }
-
         const chosenTime = timeInput ? timeInput.value : '21:00';
         const profileName = currentUserProfile === 'em' ? 'Em' : 'Anh';
 
-        const res = await fetch('/api/send-push', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            subscription: sub.toJSON(),
-            title: 'All In One • Test Thông Báo 🔔',
-            body: `Xin chào ${profileName}! iPhone của bạn đã kết nối thành công. App sẽ nhắc nhở vào lúc ${chosenTime} mỗi ngày nhé!`,
+        if (Notification.permission !== 'granted') {
+          throw new Error('Chưa cấp quyền thông báo. Vui lòng bấm "Lưu & Bật thông báo" trước.');
+        }
+
+        // Trigger native notification directly via Service Worker
+        await reg.showNotification('All In One • Test Thông Báo 🔔', {
+          body: `Xin chào ${profileName}! Đã kết nối thông báo thành công. App sẽ nhắc nhở vào lúc ${chosenTime} mỗi ngày nhé!`,
+          icon: '/favicon.png',
+          badge: '/favicon-32x32.png',
+          vibrate: [150, 80, 150],
+          tag: 'aio-test-notification',
+          renotify: true,
+          data: {
             url: '/?tab=ledger&subtab=input'
-          })
+          }
         });
 
-        const data = await res.json();
-        if (data.success) {
-          showToast('Đã gửi thông báo thử! Bạn hãy kiểm tra màn hình điện thoại nhé.');
-        } else {
-          throw new Error(data.error || 'Server không thể gửi push');
-        }
+        showToast('Đã gửi thông báo thử! Bạn hãy kiểm tra thông báo trên máy nhé.');
       } catch (err) {
         console.error('Lỗi gửi push test:', err);
         await showAlertModal({
