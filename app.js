@@ -3345,6 +3345,263 @@ function applyTheme(theme) {
   }
 }
 
+// =============================================================================
+// MODULE 5: PWA WEB PUSH REMINDER FEATURE (FOR IPHONE & MOBILE)
+// =============================================================================
+
+const VAPID_PUBLIC_KEY = 'BFX-a3bf7VVGRGGR1WkmTQKQH93aoWVH56dNTwU6gzdSEApbd_RerTka_n9m0fJLE6CZsYbphUOv80VllkZuo1s';
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+// Register service worker immediately
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(err => {
+      console.warn('Service worker registration failed:', err);
+    });
+  });
+}
+
+function initReminderFeature() {
+  const modal = document.getElementById('aio-reminder-modal');
+  const btnOpenNav = document.getElementById('btn-open-reminder-modal');
+  const btnOpenHeader = document.getElementById('btn-quick-reminder-header');
+  const btnClose = document.getElementById('btn-close-reminder');
+  const btnSave = document.getElementById('btn-save-reminder');
+  const btnTestPush = document.getElementById('btn-test-push');
+  const timeInput = document.getElementById('reminder-time-input');
+  const statusBadge = document.getElementById('reminder-status-badge');
+  const profileLabel = document.getElementById('reminder-profile-label');
+  const iosTip = document.getElementById('reminder-ios-tip');
+
+  if (!modal) return;
+
+  // Load saved reminder time from localStorage
+  const savedTime = localStorage.getItem('aio_reminder_time') || '21:00';
+  if (timeInput) timeInput.value = savedTime;
+
+  function updateModalState() {
+    if (profileLabel) {
+      profileLabel.textContent = currentUserProfile === 'em' ? 'Em' : 'Anh';
+    }
+
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+
+    if (iosTip) {
+      if (isIOS && !isStandalone) {
+        iosTip.style.display = 'block';
+      } else {
+        iosTip.style.display = 'none';
+      }
+    }
+
+    if (!('Notification' in window)) {
+      if (statusBadge) {
+        statusBadge.textContent = isIOS ? 'Cần mở từ Màn hình chính' : 'Trình duyệt không hỗ trợ';
+        statusBadge.className = 'reminder-status-badge is-denied';
+      }
+      if (btnTestPush) btnTestPush.style.display = 'none';
+      return;
+    }
+
+    const perm = Notification.permission;
+    if (perm === 'granted') {
+      if (statusBadge) {
+        statusBadge.textContent = '✓ Đã bật thông báo';
+        statusBadge.className = 'reminder-status-badge is-granted';
+      }
+      if (btnTestPush) btnTestPush.style.display = 'inline-flex';
+    } else if (perm === 'denied') {
+      if (statusBadge) {
+        statusBadge.textContent = '🚫 Bị chặn trong Cài đặt máy';
+        statusBadge.className = 'reminder-status-badge is-denied';
+      }
+      if (btnTestPush) btnTestPush.style.display = 'none';
+    } else {
+      if (statusBadge) {
+        statusBadge.textContent = 'Chưa cấp quyền';
+        statusBadge.className = 'reminder-status-badge is-default';
+      }
+      if (btnTestPush) btnTestPush.style.display = 'none';
+    }
+  }
+
+  function openModal() {
+    updateModalState();
+    modal.style.display = 'flex';
+  }
+
+  function closeModal() {
+    modal.style.display = 'none';
+  }
+
+  if (btnOpenNav) btnOpenNav.addEventListener('click', openModal);
+  if (btnOpenHeader) btnOpenHeader.addEventListener('click', openModal);
+  if (btnClose) btnClose.addEventListener('click', closeModal);
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
+  });
+
+  if (btnSave) {
+    btnSave.addEventListener('click', async () => {
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+      const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+
+      if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+        if (isIOS && !isStandalone) {
+          await showAlertModal({
+            title: 'Yêu cầu mở từ Màn hình chính',
+            message: 'Trên iPhone, Apple chỉ cho phép bật thông báo đẩy khi bạn mở trang web từ biểu tượng ngoài Màn hình chính (Add to Home Screen). Hãy bấm nút Chia sẻ (Share ⎋) trong Safari -> Thêm vào MH chính nhé!',
+            buttonText: 'Đã hiểu',
+            icon: '📱'
+          });
+          return;
+        }
+        await showAlertModal({
+          title: 'Không hỗ trợ Web Push',
+          message: 'Trình duyệt hiện tại không hỗ trợ Web Push Notification. Hãy sử dụng Safari (iPhone) hoặc Chrome nhé!',
+          buttonText: 'Đã hiểu',
+          icon: '⚠️'
+        });
+        return;
+      }
+
+      btnSave.disabled = true;
+      btnSave.textContent = 'Đang kích hoạt...';
+
+      try {
+        let perm = Notification.permission;
+        if (perm !== 'granted') {
+          perm = await Notification.requestPermission();
+        }
+
+        if (perm !== 'granted') {
+          updateModalState();
+          btnSave.disabled = false;
+          btnSave.textContent = 'Lưu & Bật thông báo';
+          await showAlertModal({
+            title: 'Chưa được cấp quyền',
+            message: 'Bạn chưa cho phép gửi thông báo. Trên iPhone, bạn có thể vào Cài đặt máy > Thông báo > All In One để gạt Cho phép thông báo nhé.',
+            buttonText: 'Đã hiểu',
+            icon: '🚫'
+          });
+          return;
+        }
+
+        // Wait for service worker ready
+        const reg = await navigator.serviceWorker.ready;
+        let sub = await reg.pushManager.getSubscription();
+
+        if (!sub) {
+          sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+          });
+        }
+
+        const chosenTime = timeInput ? timeInput.value : '21:00';
+        localStorage.setItem('aio_reminder_time', chosenTime);
+        localStorage.setItem('aio_reminder_enabled', 'true');
+
+        // Save subscription & reminder time to Firebase Realtime Database
+        const reminderPayload = {
+          profile: currentUserProfile,
+          time: chosenTime,
+          enabled: true,
+          subscription: sub.toJSON(),
+          userAgent: navigator.userAgent,
+          updatedAt: Date.now()
+        };
+
+        const dbUrl = 'https://all-in-one-86a90-default-rtdb.asia-southeast1.firebasedatabase.app';
+        await fetch(`${dbUrl}/reminders/${currentUserProfile}.json`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(reminderPayload)
+        });
+
+        updateModalState();
+        showToast(`Đã bật nhắc nhở chi tiêu lúc ${chosenTime} mỗi ngày thành công!`);
+
+        btnSave.disabled = false;
+        btnSave.textContent = '✓ Đã lưu cài đặt';
+        setTimeout(() => {
+          btnSave.textContent = 'Lưu & Bật thông báo';
+        }, 2000);
+      } catch (err) {
+        console.error('Lỗi khi bật thông báo:', err);
+        btnSave.disabled = false;
+        btnSave.textContent = 'Lưu & Bật thông báo';
+        await showAlertModal({
+          title: 'Lỗi thiết lập thông báo',
+          message: 'Không thể đăng ký thông báo đẩy: ' + (err.message || 'Vui lòng thử lại sau.'),
+          buttonText: 'Đóng',
+          icon: '⚠️'
+        });
+      }
+    });
+  }
+
+  if (btnTestPush) {
+    btnTestPush.addEventListener('click', async () => {
+      btnTestPush.disabled = true;
+      btnTestPush.textContent = 'Đang gửi thông báo...';
+
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        const sub = await reg.pushManager.getSubscription();
+
+        if (!sub) {
+          throw new Error('Chưa tìm thấy đăng ký thông báo trên máy. Vui lòng bấm "Lưu & Bật thông báo" trước.');
+        }
+
+        const chosenTime = timeInput ? timeInput.value : '21:00';
+        const profileName = currentUserProfile === 'em' ? 'Em' : 'Anh';
+
+        const res = await fetch('/api/send-push', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            subscription: sub.toJSON(),
+            title: 'All In One • Test Thông Báo 🔔',
+            body: `Xin chào ${profileName}! iPhone của bạn đã kết nối thành công. App sẽ nhắc nhở vào lúc ${chosenTime} mỗi ngày nhé!`,
+            url: '/?tab=ledger&subtab=input'
+          })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          showToast('Đã gửi thông báo thử! Bạn hãy kiểm tra màn hình điện thoại nhé.');
+        } else {
+          throw new Error(data.error || 'Server không thể gửi push');
+        }
+      } catch (err) {
+        console.error('Lỗi gửi push test:', err);
+        await showAlertModal({
+          title: 'Lỗi gửi thông báo thử',
+          message: err.message,
+          buttonText: 'Đóng',
+          icon: '⚠️'
+        });
+      } finally {
+        btnTestPush.disabled = false;
+        btnTestPush.textContent = '⚡ Gửi thử thông báo ngay để test';
+      }
+    });
+  }
+}
+
 // Initial Boot
 window.addEventListener('DOMContentLoaded', () => {
   initThemeManager();
@@ -3356,6 +3613,7 @@ window.addEventListener('DOMContentLoaded', () => {
   initAppleNotes();
   initKomorebiLedger();
   initCloudSync();
+  initReminderFeature();
 
   // Load last active module (default to budget)
   const savedMod = localStorage.getItem(AIO_STORAGE_KEY_MODULE) || 'budget';
