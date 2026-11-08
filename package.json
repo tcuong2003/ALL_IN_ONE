@@ -4,7 +4,7 @@
   "description": "Nền tảng tích hợp đa công cụ & đa dự án cá nhân trong một mã nguồn duy nhất. Ban đầu phát triển từ dự án `calculator` (máy tính phân bổ chi tiêu 100%), nay được nâng cấp thành **All In One Suite** với kiến trúc module hóa linh hoạt, sẵn sàng mở rộng và cắm thêm nhiều dự án tiếp theo.",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "echo 'Static build ok'"
   },
   "repository": {
     "type": "git",
