@@ -1,18 +1,16 @@
-module.exports = (req, res) => {
+export default function handler(req, res) {
   let webpushStatus = 'ok';
   let webpushError = null;
   try {
     const webpush = require('web-push');
-  } catch (err) {
+  } catch (e) {
     webpushStatus = 'failed';
-    webpushError = err.message + '\n' + err.stack;
+    webpushError = e.message;
   }
-
   res.status(200).json({
-    status: 'online',
-    nodeVersion: process.version,
-    env: process.env.NODE_ENV,
+    ok: true,
+    node: process.version,
     webpushStatus,
     webpushError
   });
-};
+}
