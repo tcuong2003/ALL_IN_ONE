@@ -3204,6 +3204,7 @@ body[data-tab="hub"] .badge-tag {
   padding: 24px 32px 40px;
   display: flex;
   flex-direction: column;
+  cursor: text;
 }
 
 .note-timestamp {

@@ -2276,6 +2276,43 @@ function insertBudgetSummaryToNote() {
   showToast('Đã chèn bảng chi tiêu SmartBudget vào ghi chú!');
 }
 
+function focusBodyEditor(atStart = true) {
+  const bodyEditor = document.getElementById('note-body-editor');
+  if (!bodyEditor) return;
+
+  const content = bodyEditor.innerHTML.trim();
+  if (!content || content === '<div></div>' || content === '<br>') {
+    bodyEditor.innerHTML = '<div><br></div>';
+  }
+
+  bodyEditor.focus();
+
+  try {
+    const range = document.createRange();
+    const sel = window.getSelection();
+
+    if (atStart) {
+      const targetNode = bodyEditor.firstChild || bodyEditor;
+      if (targetNode.nodeType === Node.TEXT_NODE) {
+        range.setStart(targetNode, 0);
+      } else if (targetNode.firstChild) {
+        range.setStart(targetNode.firstChild, 0);
+      } else {
+        range.setStart(targetNode, 0);
+      }
+      range.collapse(true);
+    } else {
+      range.selectNodeContents(bodyEditor);
+      range.collapse(false);
+    }
+
+    sel.removeAllRanges();
+    sel.addRange(range);
+  } catch (err) {
+    console.warn('focus caret placement error:', err);
+  }
+}
+
 function initAppleNotes() {
   loadNotesFromStorage();
 
@@ -2368,15 +2405,98 @@ function initAppleNotes() {
   if (chipH2) chipH2.addEventListener('click', insertHeadingItem);
   if (chipBudget) chipBudget.addEventListener('click', insertBudgetSummaryToNote);
 
-  // Auto-save on title and body input
+  // Auto-save & Keyboard Navigation on title and body input
   const titleInput = document.getElementById('note-title-input');
   const bodyEditor = document.getElementById('note-body-editor');
+  const editorArea = document.getElementById('editor-content-area');
+
   if (titleInput) {
     titleInput.addEventListener('input', triggerAutoSave);
+    titleInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        focusBodyEditor(true);
+      } else if (e.key === 'ArrowDown') {
+        if (titleInput.selectionStart === titleInput.value.length) {
+          e.preventDefault();
+          focusBodyEditor(true);
+        }
+      }
+    });
   }
+
+  if (editorArea) {
+    editorArea.addEventListener('click', (e) => {
+      // If clicking directly on editor whitespace below title or body, focus body
+      if (e.target === editorArea) {
+        focusBodyEditor(false);
+      }
+    });
+  }
+
   if (bodyEditor) {
     bodyEditor.addEventListener('input', triggerAutoSave);
     bodyEditor.addEventListener('blur', triggerAutoSave);
+
+    bodyEditor.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowUp') {
+        const sel = window.getSelection();
+        if (sel && sel.rangeCount > 0) {
+          const range = sel.getRangeAt(0);
+          const rect = range.getBoundingClientRect();
+          const editorRect = bodyEditor.getBoundingClientRect();
+          if (rect.top - editorRect.top < 32) {
+            e.preventDefault();
+            if (titleInput) {
+              titleInput.focus();
+              titleInput.setSelectionRange(titleInput.value.length, titleInput.value.length);
+            }
+          }
+        }
+      } else if (e.key === 'Enter') {
+        const sel = window.getSelection();
+        if (!sel || !sel.rangeCount) return;
+        const node = sel.anchorNode;
+        const checklistItem = node && (node.nodeType === 1 ? node : node.parentElement).closest('.apple-checklist-item');
+        if (checklistItem) {
+          e.preventDefault();
+          const textSpan = checklistItem.querySelector('.checklist-text');
+          if (textSpan && !textSpan.textContent.trim()) {
+            const normalLine = document.createElement('div');
+            normalLine.innerHTML = '<br>';
+            checklistItem.parentNode.insertBefore(normalLine, checklistItem);
+            checklistItem.remove();
+
+            const range = document.createRange();
+            range.setStart(normalLine, 0);
+            range.collapse(true);
+            sel.removeAllRanges();
+            sel.addRange(range);
+            triggerAutoSave();
+            return;
+          }
+
+          const newItem = document.createElement('div');
+          newItem.className = 'apple-checklist-item';
+          newItem.innerHTML = `<span class="apple-checkbox" contenteditable="false"></span><span class="checklist-text"><br></span>`;
+          if (checklistItem.nextSibling) {
+            checklistItem.parentNode.insertBefore(newItem, checklistItem.nextSibling);
+          } else {
+            checklistItem.parentNode.appendChild(newItem);
+          }
+
+          attachCheckboxHandlers();
+
+          const newTextSpan = newItem.querySelector('.checklist-text');
+          const range = document.createRange();
+          range.setStart(newTextSpan, 0);
+          range.collapse(true);
+          sel.removeAllRanges();
+          sel.addRange(range);
+          triggerAutoSave();
+        }
+      }
+    });
   }
 
   renderNotesApp();

@@ -1,5 +1,5 @@
 // All In One Service Worker for PWA & Web Push Notifications
-const SW_VERSION = 'v1.3';
+const SW_VERSION = 'v1.4';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
