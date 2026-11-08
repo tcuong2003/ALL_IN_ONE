@@ -23,7 +23,7 @@
   <meta name="apple-mobile-web-app-title" content="All In One">
   <meta name="theme-color" content="#101522">
   
-  <link rel="stylesheet" href="style.css?v=3.7">
+  <link rel="stylesheet" href="style.css?v=3.8">
   <script>
     (function() {
       const savedTheme = localStorage.getItem('aio_suite_theme_mode') || 'light';
@@ -636,7 +636,7 @@
               <span class="komo-tab-icon">👛</span>
               <span class="komo-tab-text">Ngân sách</span>
             </button>
-            <button type="button" class="komo-nav-tab" id="btn-open-reminder-modal" title="Cài đặt thông báo & nhắc nhở trên điện thoại">
+            <button type="button" class="komo-nav-tab" data-subtab="reminder" id="tab-subnav-reminder" title="Cài đặt thông báo & nhắc nhở trên điện thoại">
               <span class="komo-tab-icon">🔔</span>
               <span class="komo-tab-text">Nhắc nhở</span>
             </button>
@@ -882,6 +882,96 @@
             </div>
           </div>
 
+          <!-- ============================================================= -->
+          <!-- SUB-VIEW 5: REMINDER VIEW (CÀI ĐẶT THÔNG BÁO & NHẮC NHỞ)       -->
+          <!-- ============================================================= -->
+          <div id="komo-view-reminder" class="komo-subview" style="display: none;">
+            <div class="komo-reminder-card">
+              <!-- Header -->
+              <div class="komo-reminder-header">
+                <div class="reminder-header-icon">🔔</div>
+                <div class="reminder-header-content">
+                  <h3 class="reminder-header-title">Cài đặt giờ nhắc nhở chi tiêu</h3>
+                  <p class="reminder-header-desc">Nhận thông báo đẩy hàng ngày trên điện thoại để không bao giờ quên ghi chép chi tiêu.</p>
+                </div>
+              </div>
+
+              <!-- iOS PWA Tip banner -->
+              <div class="reminder-ios-tip" id="reminder-ios-tip" style="display: none;">
+                💡 <strong>Mẹo cho iPhone:</strong> Để nhận thông báo đẩy kể cả khi đã tắt app hoặc khóa màn hình, bạn hãy mở app từ <em>biểu tượng ngoài Màn hình chính (Add to Home Screen)</em> nhé!
+              </div>
+
+              <!-- Status Card -->
+              <div class="reminder-section-card">
+                <div class="reminder-status-row">
+                  <span class="reminder-status-label">Trạng thái thông báo:</span>
+                  <span class="reminder-status-badge" id="reminder-status-badge">Đang kiểm tra...</span>
+                </div>
+
+                <div class="reminder-profile-row">
+                  <span class="reminder-status-label">Tài khoản nhận thông báo:</span>
+                  <span class="reminder-profile-pill">
+                    <span id="reminder-profile-icon">👨</span>
+                    <strong id="reminder-profile-label">Anh</strong>
+                    <span class="reminder-profile-note">(Đổi ở thanh trên cùng)</span>
+                  </span>
+                </div>
+              </div>
+
+              <!-- Time Config Card -->
+              <div class="reminder-section-card">
+                <div class="reminder-time-label-wrap">
+                  <label for="reminder-time-input" class="reminder-time-title">Giờ nhắc nhở mỗi ngày (Giờ VN):</label>
+                  <span class="reminder-time-sub">Thông báo sẽ tự động gửi đúng vào khung giờ này</span>
+                </div>
+
+                <div class="reminder-time-input-row">
+                  <input type="time" id="reminder-time-input" class="reminder-time-picker" value="21:00">
+                  <div class="reminder-preset-pills">
+                    <button type="button" class="reminder-preset-btn" data-time="20:00">20:00</button>
+                    <button type="button" class="reminder-preset-btn" data-time="20:30">20:30</button>
+                    <button type="button" class="reminder-preset-btn active" data-time="21:00">21:00</button>
+                    <button type="button" class="reminder-preset-btn" data-time="21:30">21:30</button>
+                    <button type="button" class="reminder-preset-btn" data-time="22:00">22:00</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Live Mobile Notification Preview -->
+              <div class="reminder-preview-wrapper">
+                <div class="preview-tag-title">Mô phỏng thông báo trên điện thoại</div>
+                <div class="preview-bubble-card">
+                  <div class="preview-bubble-head">
+                    <div class="preview-bubble-app">
+                      <span class="preview-bubble-logo">⚡</span>
+                      <span class="preview-bubble-name">All In One • Sổ Thu Chi</span>
+                    </div>
+                    <span class="preview-bubble-time">Bây giờ</span>
+                  </div>
+                  <div class="preview-bubble-heading">All In One • Nhắc nhở chi tiêu 📝</div>
+                  <div class="preview-bubble-content" id="reminder-preview-text">
+                    Đã 21:00 rồi! Anh ơi, hôm nay mình đã ghi chép các khoản chi tiêu đầy đủ chưa?
+                  </div>
+                </div>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="reminder-action-buttons">
+                <button type="button" class="btn-reminder-save" id="btn-save-reminder">
+                  💾 Lưu & Bật thông báo
+                </button>
+                <button type="button" class="btn-reminder-test" id="btn-test-push" style="display: none;">
+                  ⚡ Gửi thử thông báo ngay để test
+                </button>
+              </div>
+
+              <!-- Security / Sync Note -->
+              <div class="reminder-footnote">
+                <span>🔒 Đồng bộ tức thì với Firebase Cloud • Tự động gửi ngầm trên điện thoại</span>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -1112,59 +1202,11 @@
         </div>
       </div>
     </div>
-
-    <!-- Modal: Push Notification Reminder Setting for iPhone / Mobile PWA -->
-    <div id="aio-reminder-modal" class="aio-confirm-overlay" style="display: none;">
-      <div class="aio-confirm-card aio-reminder-card" role="dialog" aria-modal="true" aria-labelledby="reminder-modal-title">
-        <div class="aio-confirm-icon-box is-warning">🔔</div>
-        <h3 class="aio-confirm-title" id="reminder-modal-title">Nhắc nhở chi tiêu trên điện thoại</h3>
-        <p class="aio-confirm-message">Nhận thông báo đẩy hàng ngày để không bao giờ quên ghi chép chi tiêu.</p>
-
-        <div class="reminder-form-body">
-          <!-- iOS PWA Notice banner -->
-          <div class="reminder-ios-tip" id="reminder-ios-tip" style="display: none;">
-            💡 <strong>Mẹo cho iPhone:</strong> Để nhận thông báo kể cả khi đã tắt app, hãy mở trang này từ <em>biểu tượng ngoài Màn hình chính</em> bạn nhé!
-          </div>
-
-          <!-- Permission Status Badge -->
-          <div class="reminder-status-row">
-            <span class="reminder-status-label">Trạng thái thông báo:</span>
-            <span class="reminder-status-badge" id="reminder-status-badge">Đang kiểm tra...</span>
-          </div>
-
-          <!-- Time Picker Box -->
-          <div class="reminder-time-box">
-            <label for="reminder-time-input" class="reminder-field-label">Giờ nhắc nhở mỗi tối (Giờ VN):</label>
-            <div class="reminder-time-input-wrap">
-              <input type="time" id="reminder-time-input" class="reminder-time-picker" value="21:00">
-              <span class="reminder-time-hint">Gợi ý: 20:00, 21:00 hoặc 22:00</span>
-            </div>
-          </div>
-
-          <!-- Active Profile Indicator -->
-          <div class="reminder-profile-info">
-            Tài khoản nhận thông báo: <strong id="reminder-profile-label">Anh</strong>
-          </div>
-        </div>
-
-        <div class="reminder-actions-column">
-          <button type="button" class="btn-aio-dialog btn-aio-ok btn-primary" id="btn-save-reminder">
-            Lưu & Bật thông báo
-          </button>
-          <button type="button" class="btn-aio-dialog btn-test-push" id="btn-test-push" style="display: none;">
-            ⚡ Gửi thử thông báo ngay để test
-          </button>
-          <button type="button" class="btn-aio-dialog btn-aio-cancel" id="btn-close-reminder">
-            Đóng
-          </button>
-        </div>
-      </div>
-    </div>
   </div>
 
   <!-- Firebase Realtime Database Cloud Sync SDK (Google) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
-  <script src="app.js?v=3.7"></script>
+  <script src="app.js?v=3.8"></script>
 </body>
 </html>

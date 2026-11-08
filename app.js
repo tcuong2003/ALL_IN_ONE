@@ -441,6 +441,9 @@ function switchUserProfile(newProfile) {
   if (typeof renderLedgerApp === 'function') {
     renderLedgerApp();
   }
+  if (typeof updateReminderUIState === 'function' && updateReminderUIState) {
+    updateReminderUIState();
+  }
 
   // 8. Re-render Compound
   if (typeof renderCompound === 'function') {
@@ -2509,7 +2512,7 @@ function switchLedgerSubTab(tabName) {
     btn.classList.toggle('active', btn.dataset.subtab === tabName);
   });
 
-  const views = ['calendar', 'input', 'report', 'budget'];
+  const views = ['calendar', 'input', 'report', 'budget', 'reminder'];
   views.forEach(v => {
     const el = document.getElementById(`komo-view-${v}`);
     if (el) {
@@ -2527,6 +2530,10 @@ function switchLedgerSubTab(tabName) {
     renderLedgerReports();
   } else if (tabName === 'budget') {
     renderLedgerBudget();
+  } else if (tabName === 'reminder') {
+    if (typeof updateReminderUIState === 'function' && updateReminderUIState) {
+      updateReminderUIState();
+    }
   }
 }
 
@@ -3371,28 +3378,47 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+let updateReminderUIState = null;
+
 function initReminderFeature() {
-  const modal = document.getElementById('aio-reminder-modal');
-  const btnOpenNav = document.getElementById('btn-open-reminder-modal');
+  const reminderView = document.getElementById('komo-view-reminder');
   const btnOpenHeader = document.getElementById('btn-quick-reminder-header');
-  const btnClose = document.getElementById('btn-close-reminder');
   const btnSave = document.getElementById('btn-save-reminder');
   const btnTestPush = document.getElementById('btn-test-push');
   const timeInput = document.getElementById('reminder-time-input');
   const statusBadge = document.getElementById('reminder-status-badge');
   const profileLabel = document.getElementById('reminder-profile-label');
+  const profileIcon = document.getElementById('reminder-profile-icon');
   const iosTip = document.getElementById('reminder-ios-tip');
+  const previewText = document.getElementById('reminder-preview-text');
+  const presetBtns = document.querySelectorAll('.reminder-preset-btn');
 
-  if (!modal) return;
+  if (!reminderView) return;
 
   // Load saved reminder time from localStorage
   const savedTime = localStorage.getItem('aio_reminder_time') || '21:00';
   if (timeInput) timeInput.value = savedTime;
 
-  function updateModalState() {
-    if (profileLabel) {
-      profileLabel.textContent = currentUserProfile === 'em' ? 'Em' : 'Anh';
-    }
+  function updatePresetButtons(timeVal) {
+    presetBtns.forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.time === timeVal);
+    });
+  }
+  updatePresetButtons(savedTime);
+
+  function updatePreview() {
+    if (!previewText) return;
+    const timeVal = (timeInput && timeInput.value) || '21:00';
+    const profileName = currentUserProfile === 'em' ? 'Em' : 'Anh';
+    previewText.textContent = `Đã ${timeVal} rồi! ${profileName} ơi, hôm nay mình đã ghi chép các khoản chi tiêu đầy đủ chưa?`;
+  }
+
+  updateReminderUIState = function() {
+    const profileName = currentUserProfile === 'em' ? 'Em' : 'Anh';
+    if (profileLabel) profileLabel.textContent = profileName;
+    if (profileIcon) profileIcon.textContent = currentUserProfile === 'em' ? '👩' : '👨';
+
+    updatePreview();
 
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
     const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
@@ -3434,25 +3460,42 @@ function initReminderFeature() {
       }
       if (btnTestPush) btnTestPush.style.display = 'none';
     }
-  }
+  };
 
-  function openModal() {
-    updateModalState();
-    modal.style.display = 'flex';
-  }
-
-  function closeModal() {
-    modal.style.display = 'none';
-  }
-
-  if (btnOpenNav) btnOpenNav.addEventListener('click', openModal);
-  if (btnOpenHeader) btnOpenHeader.addEventListener('click', openModal);
-  if (btnClose) btnClose.addEventListener('click', closeModal);
-
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) closeModal();
+  // Preset time chips click handler
+  presetBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const chosen = btn.dataset.time;
+      if (timeInput) timeInput.value = chosen;
+      updatePresetButtons(chosen);
+      updatePreview();
+    });
   });
 
+  if (timeInput) {
+    timeInput.addEventListener('input', () => {
+      updatePresetButtons(timeInput.value);
+      updatePreview();
+    });
+    timeInput.addEventListener('change', () => {
+      updatePresetButtons(timeInput.value);
+      updatePreview();
+    });
+  }
+
+  // Header quick button: navigate smoothly to Ledger -> Reminder tab
+  if (btnOpenHeader) {
+    btnOpenHeader.addEventListener('click', () => {
+      switchModule('ledger');
+      switchLedgerSubTab('reminder');
+      const card = document.querySelector('.komo-reminder-card');
+      if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  }
+
+  // Save & Activate Push
   if (btnSave) {
     btnSave.addEventListener('click', async () => {
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
@@ -3487,9 +3530,9 @@ function initReminderFeature() {
         }
 
         if (perm !== 'granted') {
-          updateModalState();
+          updateReminderUIState();
           btnSave.disabled = false;
-          btnSave.textContent = 'Lưu & Bật thông báo';
+          btnSave.textContent = '💾 Lưu & Bật thông báo';
           await showAlertModal({
             title: 'Chưa được cấp quyền',
             message: 'Bạn chưa cho phép gửi thông báo. Trên iPhone, bạn có thể vào Cài đặt máy > Thông báo > All In One để gạt Cho phép thông báo nhé.',
@@ -3531,18 +3574,18 @@ function initReminderFeature() {
           body: JSON.stringify(reminderPayload)
         });
 
-        updateModalState();
+        updateReminderUIState();
         showToast(`Đã bật nhắc nhở chi tiêu lúc ${chosenTime} mỗi ngày thành công!`);
 
         btnSave.disabled = false;
         btnSave.textContent = '✓ Đã lưu cài đặt';
         setTimeout(() => {
-          btnSave.textContent = 'Lưu & Bật thông báo';
+          btnSave.textContent = '💾 Lưu & Bật thông báo';
         }, 2000);
       } catch (err) {
         console.error('Lỗi khi bật thông báo:', err);
         btnSave.disabled = false;
-        btnSave.textContent = 'Lưu & Bật thông báo';
+        btnSave.textContent = '💾 Lưu & Bật thông báo';
         await showAlertModal({
           title: 'Lỗi thiết lập thông báo',
           message: 'Không thể đăng ký thông báo đẩy: ' + (err.message || 'Vui lòng thử lại sau.'),
@@ -3553,6 +3596,7 @@ function initReminderFeature() {
     });
   }
 
+  // Test Push button
   if (btnTestPush) {
     btnTestPush.addEventListener('click', async () => {
       btnTestPush.disabled = true;
@@ -3595,6 +3639,9 @@ function initReminderFeature() {
       }
     });
   }
+
+  // Initial UI state update
+  updateReminderUIState();
 }
 
 // Initial Boot
@@ -3610,11 +3657,22 @@ window.addEventListener('DOMContentLoaded', () => {
   initCloudSync();
   initReminderFeature();
 
-  // Load last active module (default to budget)
-  const savedMod = localStorage.getItem(AIO_STORAGE_KEY_MODULE) || 'budget';
-  if (['budget', 'compound', 'hub', 'notes', 'ledger'].includes(savedMod)) {
-    switchModule(savedMod);
+  // URL parameters or last active module
+  const urlParams = new URLSearchParams(window.location.search);
+  const targetTab = urlParams.get('tab');
+  const targetSubtab = urlParams.get('subtab');
+
+  if (targetTab && ['budget', 'compound', 'hub', 'notes', 'ledger'].includes(targetTab)) {
+    switchModule(targetTab);
+    if (targetTab === 'ledger' && targetSubtab && ['calendar', 'input', 'report', 'budget', 'reminder'].includes(targetSubtab)) {
+      switchLedgerSubTab(targetSubtab);
+    }
   } else {
-    switchModule('budget');
+    const savedMod = localStorage.getItem(AIO_STORAGE_KEY_MODULE) || 'budget';
+    if (['budget', 'compound', 'hub', 'notes', 'ledger'].includes(savedMod)) {
+      switchModule(savedMod);
+    } else {
+      switchModule('budget');
+    }
   }
 });
