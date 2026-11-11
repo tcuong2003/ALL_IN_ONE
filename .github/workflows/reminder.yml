@@ -1,11 +1,14 @@
 name: Push Reminder Cron
 
 on:
-  schedule:
-    # Chạy mỗi giờ một lần (phút 0) để kiểm tra đúng giờ người dùng hẹn (ví dụ: 20:00, 21:00, 22:00 VN)
-    - cron: '0 * * * *'
+  # Kích hoạt tức thì từ Upstash QStash qua webhook API (chạy ngay trong 3-5 giây)
+  repository_dispatch:
+    types: [send_reminder]
+  # Kích hoạt thủ công từ giao diện GitHub Actions (nút Run workflow)
   workflow_dispatch:
-    # Cho phép bấm nút "Run workflow" trên GitHub bất kỳ lúc nào để test
+  # Lịch dự phòng của GitHub (14:00 UTC = 21:00 VN)
+  schedule:
+    - cron: '0 14 * * *'
 
 jobs:
   send-reminder:
@@ -24,4 +27,6 @@ jobs:
         run: npm install web-push
 
       - name: Run Reminder Dispatcher
+        env:
+          FORCE_SEND: ${{ github.event_name == 'repository_dispatch' && '1' || '0' }}
         run: node scripts/send-reminders.js
