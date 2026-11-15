@@ -14,7 +14,7 @@ const AIO_STORAGE_KEY_USER_PROFILE = 'aio_active_user_profile';
 let currentUserProfile = localStorage.getItem(AIO_STORAGE_KEY_USER_PROFILE) || 'anh';
 
 const suiteState = {
-  activeModule: 'budget', // 'budget', 'compound', 'hub'
+  activeModule: 'budget', // 'budget', 'notes', 'ledger'
   currency: 'VND',
   activeUser: currentUserProfile
 };
@@ -353,7 +353,7 @@ function switchModule(moduleName) {
   });
 
   // Switch Module Views
-  const modules = ['budget', 'compound', 'hub', 'notes', 'ledger'];
+  const modules = ['budget', 'notes', 'ledger'];
   modules.forEach(mod => {
     const el = document.getElementById(`module-${mod}`);
     if (el) {
@@ -368,9 +368,7 @@ function switchModule(moduleName) {
   });
 
   // Module specific hooks
-  if (moduleName === 'compound') {
-    renderCompound();
-  } else if (moduleName === 'budget') {
+  if (moduleName === 'budget') {
     loadFromStorage();
     render();
   } else if (moduleName === 'notes') {
@@ -389,13 +387,14 @@ function switchModule(moduleName) {
 // =============================================================================
 
 function updateCurrencyDisplay() {
+  suiteState.currency = 'VND';
   if (typeof currencyBtns !== 'undefined' && currencyBtns) {
     currencyBtns.forEach(b => {
-      b.classList.toggle('active', b.dataset.currency === suiteState.currency);
+      b.classList.toggle('active', b.dataset.currency === 'VND');
     });
   }
   if (typeof currencySymbol !== 'undefined' && currencySymbol) {
-    currencySymbol.textContent = suiteState.currency === 'USD' ? '$' : '₫';
+    currencySymbol.textContent = '₫';
   }
 }
 
@@ -699,7 +698,7 @@ function loadFromStorage() {
     if (raw) {
       const data = JSON.parse(raw);
       if (typeof data.income === 'number') state.income = data.income;
-      if (data.currency) suiteState.currency = data.currency;
+      suiteState.currency = 'VND';
       if (data.activePreset) state.activePreset = data.activePreset;
       if (data.sortBy) state.sortBy = data.sortBy;
       state.categories = safeArray(data.categories);
@@ -1597,19 +1596,21 @@ function setupEventListeners() {
   });
 
   // Currency switch
-  currencyBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      currencyBtns.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      suiteState.currency = btn.dataset.currency;
-      if (incomeInput) {
-        incomeInput.value = formatNumberForInput(state.income, suiteState.currency);
-      }
-      saveToStorage();
-      render();
-      renderCompound();
+  if (currencyBtns && currencyBtns.length > 0) {
+    currencyBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        currencyBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        suiteState.currency = btn.dataset.currency;
+        if (incomeInput) {
+          incomeInput.value = formatNumberForInput(state.income, suiteState.currency);
+        }
+        saveToStorage();
+        render();
+        renderCompound();
+      });
     });
-  });
+  }
 
   presetChips.forEach(chip => {
     chip.addEventListener('click', () => {
@@ -3802,14 +3803,14 @@ window.addEventListener('DOMContentLoaded', () => {
   const targetTab = urlParams.get('tab');
   const targetSubtab = urlParams.get('subtab');
 
-  if (targetTab && ['budget', 'compound', 'hub', 'notes', 'ledger'].includes(targetTab)) {
+  if (targetTab && ['budget', 'notes', 'ledger'].includes(targetTab)) {
     switchModule(targetTab);
     if (targetTab === 'ledger' && targetSubtab && ['calendar', 'input', 'report', 'budget'].includes(targetSubtab)) {
       switchLedgerSubTab(targetSubtab);
     }
   } else {
     const savedMod = localStorage.getItem(AIO_STORAGE_KEY_MODULE) || 'budget';
-    if (['budget', 'compound', 'hub', 'notes', 'ledger'].includes(savedMod)) {
+    if (['budget', 'notes', 'ledger'].includes(savedMod)) {
       switchModule(savedMod);
     } else {
       switchModule('budget');
