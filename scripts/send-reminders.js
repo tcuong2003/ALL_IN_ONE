@@ -17,10 +17,13 @@ async function run() {
     hour12: false
   });
   const currentVnTime = vnFormatter.format(now);
-  console.log(`Current Vietnam Time: ${currentVnTime}`);
-  const [currentHour, currentMin] = currentVnTime.split(':').map(Number);
+  const currentDate = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit'
+  }).format(now);
+  console.log(`Current Vietnam Time: ${currentDate} ${currentVnTime}`);
 
   const res = await fetch(`${FIREBASE_DB_URL}/reminders.json`);
+  if (!res.ok) throw new Error(`Firebase read failed: HTTP ${res.status}`);
   const reminders = await res.json();
 
   if (!reminders) {
@@ -38,15 +41,12 @@ async function run() {
       continue;
     }
 
-    let shouldSend = false;
-    if (item.time) {
-      const [itemHour, itemMin] = item.time.split(':').map(Number);
-      if (itemHour === currentHour) {
-        shouldSend = true;
-      }
-    } else {
-      if (currentHour === 21) shouldSend = true;
+    const scheduledTime = item.time || '21:00';
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(scheduledTime)) {
+      console.error(`Skipping ${key}: invalid reminder time.`);
+      continue;
     }
+    const shouldSend = currentVnTime >= scheduledTime && item.lastSentDate !== currentDate;
 
     if (shouldSend || process.env.FORCE_SEND === '1') {
       const profileName = item.profile === 'em' ? 'Em' : 'Anh';
@@ -59,7 +59,15 @@ async function run() {
       console.log(`Sending push notification to ${profileName} (${key})...`);
       try {
         const pushRes = await webpush.sendNotification(item.subscription, payload);
-        console.log(`✓ Push sent successfully to ${profileName}! Status: ${pushRes.statusCode}`);
+        console.log(`✓ Push accepted for ${profileName}! Status: ${pushRes.statusCode}`);
+        if (process.env.FORCE_SEND !== '1') {
+          const saveRes = await fetch(`${FIREBASE_DB_URL}/reminders/${encodeURIComponent(key)}/lastSentDate.json`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(currentDate)
+          });
+          if (!saveRes.ok) throw new Error(`Firebase delivery marker failed: HTTP ${saveRes.status}`);
+        }
       } catch (err) {
         console.error(`✗ Push failed for ${profileName}:`, err.message);
         if (err.statusCode === 404 || err.statusCode === 410) {
@@ -70,7 +78,7 @@ async function run() {
         }
       }
     } else {
-      console.log(`Profile ${key} is scheduled for ${item.time}, not current hour (${currentHour}:00).`);
+      console.log(`Skipping ${key}: scheduled for ${scheduledTime} or already sent today.`);
     }
   }
 

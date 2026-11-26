@@ -3568,7 +3568,7 @@ function initReminderFeature() {
     const perm = Notification.permission;
     if (perm === 'granted') {
       if (statusBadge) {
-        statusBadge.textContent = '✓ Đã bật thông báo';
+        statusBadge.textContent = '✓ Đã cấp quyền thông báo';
         statusBadge.className = 'reminder-status-badge is-granted';
       }
       if (btnTestPush) btnTestPush.style.display = 'inline-flex';
@@ -3695,9 +3695,6 @@ function initReminderFeature() {
         }
 
         const chosenTime = timeInput ? timeInput.value : '21:00';
-        localStorage.setItem('aio_reminder_time', chosenTime);
-        localStorage.setItem('aio_reminder_enabled', 'true');
-
         // Save subscription & reminder time to Firebase Realtime Database
         const reminderPayload = {
           profile: currentUserProfile,
@@ -3709,11 +3706,14 @@ function initReminderFeature() {
         };
 
         const dbUrl = 'https://all-in-one-86a90-default-rtdb.asia-southeast1.firebasedatabase.app';
-        await fetch(`${dbUrl}/reminders/${currentUserProfile}.json`, {
-          method: 'PUT',
+        const response = await fetch(`${dbUrl}/reminders/${currentUserProfile}.json`, {
+          method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(reminderPayload)
         });
+        if (!response.ok) throw new Error(`Không lưu được cài đặt (HTTP ${response.status}).`);
+        localStorage.setItem('aio_reminder_time', chosenTime);
+        localStorage.setItem('aio_reminder_enabled', 'true');
 
         updateReminderUIState();
         showToast(`Đã bật nhắc nhở chi tiêu lúc ${chosenTime} mỗi ngày thành công!`);
